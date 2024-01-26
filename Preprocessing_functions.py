@@ -15,7 +15,7 @@ from mpl_toolkits import mplot3d
 from sklearn.cluster import KMeans
 import torch
 import torch.nn as nn
-os.getcwd()
+
 
 def downlaod_symbol_data(symbol = "XLU", period = "120mo"):
     
@@ -148,7 +148,7 @@ def k_means_clustering(df, clusters = 4):
     plt.show() 
     
     data['labels'] = kmeans.labels_
-    print(f"Names of features used to train model: {data.columns}")
+    #print(f"Names of features used to train model: {data.columns}")
 
     return data, kmeans.labels_, kmeans
 
@@ -387,7 +387,20 @@ def cluster_inspection(df_model, cluster_number):
     return df2
 
 
+# Calculate accuracy (a classification metric)
+def accuracy_fn(y_true, y_pred):
+    """Calculates accuracy between truth labels and predictions.
 
+    Args:
+        y_true (torch.Tensor): Truth labels for predictions.
+        y_pred (torch.Tensor): Predictions to be compared to predictions.
+
+    Returns:
+        [torch.float]: Accuracy value between y_true and y_pred, e.g. 78.45
+    """
+    correct = torch.eq(y_true, y_pred).sum().item()
+    acc = (correct / len(y_pred)) * 100
+    return acc
 
 
 

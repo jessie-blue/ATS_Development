@@ -6,6 +6,7 @@ Created on Tue Jan 23 18:22:39 2024
 """
 import os 
 import joblib
+from datetime import datetime
 import pandas as pd
 import numpy as np
 import yfinance as yf
@@ -19,11 +20,12 @@ from Preprocessing_functions import *
 os.getcwd()
 
 ticker = "XLU"
+n_clusters = 3
 
 df = downlaod_symbol_data(ticker)
 df = create_momentum_feat(df, ticker)
 
-data, _, kmeans = k_means_clustering(df, 4)
+data, _, kmeans = k_means_clustering(df, n_clusters + 1)
 
 cube_clusters_plot(data)
 
@@ -43,17 +45,18 @@ for cluster_label in range(0,data.labels.nunique()):
 df_model = merge_dfs(data, df, ticker)
 
 save = False
+#day = datetime.today().strftime('%Y-%m-%d')
+day = datetime.today().strftime('%Y%m%d%H%M')
 
 if save == True:
     
-    name = input("Type a name for the data to be used for modelling: ")
-    df_model.to_parquet("data_models/df_model_{ticker}_" + name, index = True)
+    df_model.to_parquet(f"Data/df_model_{ticker}_k{n_clusters}_{day}.parquet", index = True)
     
     # Save Cluster stats
-    cluster_dist.to_csv("data_models/Cluster_Statistics.csv", index = True)   
+    cluster_dist.to_csv(f"Data/Cluster_Statistics_{ticker}_k{n_clusters}_{day}.csv", index = True)   
     
     # Save kmeans model to a file using joblib
-    model_filename = "data_models/kmeans_model_XLU_3_clusters.joblib"
+    model_filename = f"kmeans_models/kmeans_model_{ticker}_k{n_clusters}_{day}.joblib"
     joblib.dump(kmeans, model_filename)
 
 open_low_stats = dist_stats(df, "open_low")

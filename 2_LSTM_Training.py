@@ -5,68 +5,47 @@ Created on Wed Jan 17 21:24:36 2024
 @author: ktsar
 """
 
-import os
+#import os
 import pandas as pd 
-import numpy as np
-import matplotlib.pyplot as plt
+#import numpy as np
+#import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-import torch.optim as optim
+import torch.optim #as optim
 
-
+from datetime import datetime 
 from pathlib import Path
-from Preprocessing_functions import create_multivariate_rnn_data;
-from torch.utils.data import DataLoader, TensorDataset
-from helper_functions import accuracy_fn
-from LSTM_Architecture import *
-from sklearn.preprocessing import MinMaxScaler
+from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_data, accuracy_fn
+from torch.utils.data import DataLoader #, TensorDataset
+#from helper_functions import accuracy_fn
+from LSTM_Architecture import LSTM, TimeSeriesDataset
+#from sklearn.preprocessing import MinMaxScaler
 
 
-df_model = pd.read_parquet("df_model_XLU_v1")
+df_model = pd.read_parquet("Data/df_model_XLU_k3_202401251838.parquet")
 
-df_model.head()
 df_model = df_model.reset_index()
 df_model['Date'] = pd.to_datetime(df_model['Date']).dt.date
 df_model = df_model.set_index("Date")
 
 
-## Experiment with a smaller feature space 
-# df_model = df_model[['labels', 
-#                      'open_low', 
-#                      'open_close', 
-#                      'gap']]
-
 end_date = df_model.index.max()
-#start_date = df_model.index.min()
-
 model_number = 4
 data_scaling = True
 seq_length =  1
 test_size_pct = 0.15
 
 df_model = df_model.sort_index(ascending = False)
-
-## SCALING THE DATA BEFORE CONVERTING IT INTO SUITABLE INPUT FOR RNN 
-if data_scaling == True:
-    x = df_model.drop(labels = "labels", axis = 1)
-    scaler = MinMaxScaler()
-    x_fit = scaler.fit(x)
-    x = scaler.transform(x)
-    x = pd.DataFrame(x)
-    y = df_model.labels.to_frame().reset_index()
     
-    del df_model
-    df_model = y.merge(x, left_index = True, right_index = True)
-    df_model = df_model.set_index("Date")
-    del x, x_fit,y 
+df_model = min_max_scaling(df_model)
 
 df_model['last_day'] = (df_model.index == end_date).astype(int)
 
 X, y  = create_multivariate_rnn_data(df_model, seq_length)
 
+# Train, Test Split 
 test_size = int(X.shape[0] * test_size_pct) 
 train_size = X.shape[0] - test_size
-
 
 X_train, y_train = X[:train_size], y[:train_size]
 X_test, y_test = X[train_size:], y[train_size:]
@@ -80,20 +59,17 @@ X_test_tensor = torch.from_numpy(X_test).type(torch.float)#.unsqueeze(1)
 y_test_tensor = torch.from_numpy(y_test.values).type(torch.LongTensor)#.unsqueeze(1)
 
 
-
 ### HYPERPARAMETERS
 input_feat = X_train.shape[2]
 hidden_size = 32
 num_layers = 2 
 learning_rate = 0.01
-epochs =  3000
+epochs =  20000
 num_classes = 3
 batch_size = 32
 
 train_dataset = TimeSeriesDataset(X_train_tensor, y_train_tensor)
 test_dataset = TimeSeriesDataset(X_test_tensor, y_test_tensor)
-
-
 
 
 train_loader = DataLoader(train_dataset, 
@@ -161,7 +137,6 @@ for epoch in range(epochs):
 
     #print(f"Epoch: {epoch}, Loss: {avg_loss:.4f}, Accuracy: {avg_acc:.2f} ")
 
-
     ### Testing
     test_loss, test_acc = 0, 0
     model.eval()
@@ -190,11 +165,12 @@ for epoch in range(epochs):
         best_epoch = epoch
         
         # CREATE MODELS DIRECTORY 
-        MODEL_PATH = Path("models")
+        DATE = datetime.today().strftime('%Y%m%d%H%M')
+        MODEL_PATH = Path("lstm_models")
         MODEL_PATH.mkdir(parents = True, exist_ok = True)
         
         # CREATE MODEL SAVE PATH
-        MODEL_NAME = f"LSTM_Classification_model_{model_number}_Epoch_{epoch}_TestAcc_{test_acc:.2f}_TrainAcc_{avg_acc:.2F}"
+        MODEL_NAME = f"LSTM_Class_model_{model_number}_Epoch_{epoch}_TestAcc_{test_acc:.2f}_TrainAcc_{avg_acc:.2F}_{DATE}"
         MODEL_SAVE_PATH = MODEL_PATH / MODEL_NAME
         
         # SAVE MODEL STATE DICT
@@ -207,10 +183,7 @@ for epoch in range(epochs):
 
     if avg_loss == 100:
         break
-
-ac = pd.DataFrame(y_train_tensor[:,0].to("cpu").numpy(), columns = ["train_label"]).iloc[-batch_size:,].reset_index(drop = True)
-ac1 = pd.DataFrame(pred.to("cpu").numpy(), columns = ["preds"]).reset_index(drop = True)
-ac = ac.merge(ac1, left_index = True, right_index = True)
+    
 
 
 

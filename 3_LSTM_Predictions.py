@@ -20,8 +20,6 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from LSTM_Architecture import LSTM
 
-os.getcwd()
-
 ticker = "XLU"
 
 df = downlaod_symbol_data(ticker) # period = "1day"
@@ -93,8 +91,8 @@ with torch.inference_mode():
 
 actions = {
     0 : f"Place a SELL ORDER in {ticker} on the OPEN and aim for a gain of 30 cents",
-    1 : f"DO NOT TRADE {ticker}",
-    2 : f"Plce a SELL ORDER in {ticker} on the OPEN and aim for a gain of 60 cents"
+    1 : f"Plce a SELL ORDER in {ticker} on the OPEN and aim for a gain of 60 cents",
+    2 : f"DO NOT TRADE {ticker}"
            }
             
 print(actions[pred[0].item()])
