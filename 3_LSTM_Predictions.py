@@ -21,6 +21,8 @@ from sklearn.preprocessing import MinMaxScaler
 from LSTM_Architecture import LSTM
 
 ticker = "XLU"
+n_clusters = 3 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 df = downlaod_symbol_data(ticker) # period = "1day"
 df = create_momentum_feat(df, ticker)
@@ -29,12 +31,15 @@ df['Date'] = pd.to_datetime(df['Date']).dt.date
 #df = df.set_index("Date")
 
 ### LOAD KMEANS MODEL ###
+KMEANS_PATH = f"kmeans_models/{ticker}/"
+KMEANS_NAME = f"kmeans_model_df_{ticker}_k{n_clusters}_202401251838.joblib"
+FILE = KMEANS_PATH + KMEANS_NAME
+loaded_kmeans = joblib.load(FILE)
+
+### ASSIGN CLUSTER TO OBSERVATION
 data = df[["open_low", "open_close", "gap"]].dropna()
-model_filename = "kmeans_model_XLU_3_clusters.joblib"
-loaded_kmeans = joblib.load(model_filename)
 k_predictions = pd.DataFrame(loaded_kmeans.predict(data), columns = ["labels"])
 data = data.merge(k_predictions, left_index = True, right_index = True)
-
 
 df_model = merge_dfs(data, df, ticker)
 df_model = df_model.set_index("Date")
@@ -44,8 +49,6 @@ df_model['last_day'] = (df_model.index == end_date).astype(int)
 del df, data
 
 seq_length =  1
-#test_size_pct = 0.15
-
 df_model = df_model.sort_index(ascending = False)
 
 ## SCALING THE DATA BEFORE CONVERTING IT INTO SUITABLE INPUT FOR RNN 
@@ -53,17 +56,16 @@ df_model = min_max_scaling(df_model)
 
 X, y  = create_multivariate_rnn_data(df_model, seq_length)
 
-X1 = X[0]
+# X = X[0]
+X_tensor = torch.from_numpy(X[0]).type(torch.float).to(device).unsqueeze(0)
 
 input_feat = df_model.shape[1]
 hidden_size = 32
 num_layers = 2 
-learning_rate = 0.01
-epochs =  3000
+#learning_rate = 0.01
+#epochs =  3000
 num_classes = 3
-batch_size = 32
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#batch_size = 32
 
 # INSTANTIATE MODEL
 model = LSTM(input_size=input_feat, 
@@ -73,14 +75,19 @@ model = LSTM(input_size=input_feat,
              device=device).to(device)
 
 # LOAD LSTM MODEL STATE DICT  
-MODEL_LOC = "C:/Users/ktsar/Downloads/Python codes/Python codes/LSTM_Model_4_Class_XLU_SL_1_LAST_DAY_FEAT/LSTM_Classification_model_4_Epoch_2709_TestAcc_81.07_TrainAcc_82.03"
+MODEL_PATH = f"lstm_models/{ticker}/"
+#print(os.listdir(f"lstm_models/{ticker}"))
+MODEL_NAME = 'LSTM_Class_df_XLU_k3_202401251838_Epoch_4000_TestAcc_82.64_TrainAcc_82.51_202401252157'
+interactive = False
 
-model.load_state_dict(torch.load(f = MODEL_LOC ))
+if interactive is True:
+    MODEL_IDX = int(input('Choose model index:'))
+    MODEL_NAME = os.listdir(f"lstm_models/{ticker}")[MODEL_IDX]
 
-X_tensor = torch.from_numpy(X).type(torch.float).to(device).unsqueeze(0)
 
-#X_tensor = torch.from_numpy(X).type(torch.float).to(device)#.unsqueeze(0)
+model.load_state_dict(torch.load(f = MODEL_PATH + MODEL_NAME ))
 
+# PREDICTION 
 model.eval()
 
 with torch.inference_mode():
@@ -89,11 +96,26 @@ with torch.inference_mode():
     pred = torch.softmax(output, dim = 1).argmax(dim = 1)
 
 
-actions = {
-    0 : f"Place a SELL ORDER in {ticker} on the OPEN and aim for a gain of 30 cents",
-    1 : f"Plce a SELL ORDER in {ticker} on the OPEN and aim for a gain of 60 cents",
-    2 : f"DO NOT TRADE {ticker}"
-           }
+STATS_PATH = f"Data/{ticker}/"
+#print("KMEANS Stats files: ", os.listdir(f"Data/{ticker}"))
+STATS_NAME = 'KMEANS_Stats_df_XLU_k3_202401251838.csv'
+
+cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
+
+
+actions = {}
+
+for cluster in range(n_clusters):
+
+    mean_profit = cluster_stats.loc["mean", f"open_low_{cluster}"]
+    mean_loss = cluster_stats.loc["mean", f"open_close_{cluster}"]
+    
+    if mean_profit > mean_loss and mean_loss > 0:
+        actions[cluster] = f"Place a SELL ORDER in {ticker} on the OPEN. Profit target: {mean_profit} cents"
+    
+    else:
+        actions[cluster] = f"DO NOT TRADE {ticker}"
+        
             
 print(actions[pred[0].item()])
 

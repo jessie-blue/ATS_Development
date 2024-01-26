@@ -5,33 +5,30 @@ Created on Wed Jan 17 21:24:36 2024
 @author: ktsar
 """
 
-#import os
 import pandas as pd 
-#import numpy as np
-#import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-import torch.optim #as optim
+import torch.optim 
 
 from datetime import datetime 
 from pathlib import Path
 from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_data, accuracy_fn
 from torch.utils.data import DataLoader #, TensorDataset
-#from helper_functions import accuracy_fn
 from LSTM_Architecture import LSTM, TimeSeriesDataset
-#from sklearn.preprocessing import MinMaxScaler
 
+ticker = "XLU"
+#DF_NAME = f"df_model_{ticker}_k3_202401251838.parquet" 
+DF_NAME = f"df_{ticker}_k3_202401251838.parquet"
+FILE_PATH = f"Data/{ticker}/"
+FILE_PATH_NAME = FILE_PATH + DF_NAME
 
-df_model = pd.read_parquet("Data/df_model_XLU_k3_202401251838.parquet")
-
+df_model = pd.read_parquet(FILE_PATH_NAME)
 df_model = df_model.reset_index()
 df_model['Date'] = pd.to_datetime(df_model['Date']).dt.date
 df_model = df_model.set_index("Date")
 
 
 end_date = df_model.index.max()
-model_number = 4
-data_scaling = True
 seq_length =  1
 test_size_pct = 0.15
 
@@ -63,8 +60,8 @@ y_test_tensor = torch.from_numpy(y_test.values).type(torch.LongTensor)#.unsqueez
 input_feat = X_train.shape[2]
 hidden_size = 32
 num_layers = 2 
-learning_rate = 0.01
-epochs =  20000
+learning_rate = 0.1
+epochs =  3000
 num_classes = 3
 batch_size = 32
 
@@ -82,6 +79,8 @@ test_loader = DataLoader(test_dataset,
                           shuffle = False)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
+### CHECKING INPUT DIMENSIONS
 for _, batch in enumerate(train_loader):
     
     x_batch, y_batch = batch[0].to(device), batch[1].to(device)
@@ -103,7 +102,7 @@ torch.manual_seed(42)
 best_test_accuracy = 0 
 best_epoch = 0 
 
-# TRAIN AND TEST MODEL 
+# TRAIN AND TEST MODEL (NEEDS TO BE REFACTORED IN FNS)
 for epoch in range(epochs):
     
     model.train(True)
@@ -166,11 +165,11 @@ for epoch in range(epochs):
         
         # CREATE MODELS DIRECTORY 
         DATE = datetime.today().strftime('%Y%m%d%H%M')
-        MODEL_PATH = Path("lstm_models")
+        MODEL_PATH = Path(f"lstm_models/{ticker}")
         MODEL_PATH.mkdir(parents = True, exist_ok = True)
         
         # CREATE MODEL SAVE PATH
-        MODEL_NAME = f"LSTM_Class_model_{model_number}_Epoch_{epoch}_TestAcc_{test_acc:.2f}_TrainAcc_{avg_acc:.2F}_{DATE}"
+        MODEL_NAME = f"LSTM_Class_{DF_NAME.replace('.parquet','')}_Epoch_{epoch}_TestAcc_{test_acc:.2f}_TrainAcc_{avg_acc:.2F}_{DATE}"
         MODEL_SAVE_PATH = MODEL_PATH / MODEL_NAME
         
         # SAVE MODEL STATE DICT

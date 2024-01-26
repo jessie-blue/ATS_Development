@@ -131,13 +131,16 @@ def k_means_clustering(df, clusters = 4):
               indicating the cluster assignment for each data point.
            2. numpy.ndarray: Array containing the cluster labels assigned by K-means.
     """
+    np.random.seed(42)
     
     inertias = []
     
     data = df[['open_low', "open_close", "gap"]].dropna()
     
     for i in range(1, clusters):
-        kmeans = KMeans(n_clusters=i, random_state = 42)
+        kmeans = KMeans(n_clusters=i, 
+                        random_state = 42,
+                        verbose = False)
         kmeans.fit(data)
         inertias.append(kmeans.inertia_)
     

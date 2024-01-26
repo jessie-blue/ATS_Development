@@ -1,14 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jan 23 18:22:39 2024
+Created on Fri Jan 26 15:42:24 2024
 
 @author: ktsar
 """
+import os 
 import joblib
-
 from datetime import datetime
-from pathlib import Path 
+import pandas as pd
+from pathlib import Path
+import numpy as np
+import yfinance as yf
+import matplotlib.pyplot as plt 
+from scipy.stats import skew, norm, kurtosis
+from mpl_toolkits import mplot3d
+from sklearn.cluster import KMeans
+import torch
+import torch.nn as nn
 from Preprocessing_functions import *
+#os.getcwd()
 
 ticker = "XLU"
 n_clusters = 3
@@ -38,8 +48,8 @@ df_model = merge_dfs(data, df, ticker)
 save = False
 day = datetime.today().strftime('%Y%m%d%H%M')
 
-if save is True:
-        
+if save == True:
+    
     DATA_MODEL_PATH = Path(f"Data/{ticker}")
     DATA_MODEL_PATH.mkdir(parents = True, exist_ok = True)
     
@@ -63,10 +73,10 @@ if save is True:
 open_low_stats = dist_stats(df, "open_low")
 open_close_stats = dist_stats(df, "open_close")
 
-######## ADDED LATER FOR VISUAL CLUSTERS INSPECTION ##############
+######## ADDED LATER ##############
 testing = False
 
-if testing is True:
+if testing == True:
     df2 = df_model[df_model['labels'] == 2]
     plt.figure(figsize = (14,8))
     plt.scatter(df2['open_low'], 
@@ -79,7 +89,5 @@ if testing is True:
     
     cluster_inspection(df_model, 0)
     cluster_inspection(df_model, 1)
-
-
 
 
