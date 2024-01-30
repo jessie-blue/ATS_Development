@@ -37,12 +37,12 @@ FILE = KMEANS_PATH + KMEANS_NAME
 loaded_kmeans = joblib.load(FILE)
 
 ### ASSIGN CLUSTER TO OBSERVATION
-data = df[["open_low", "open_close", "gap"]].dropna()
-k_predictions = pd.DataFrame(loaded_kmeans.predict(data), columns = ["labels"])
-data = data.merge(k_predictions, left_index = True, right_index = True)
+data = df[["Date","open_low", "open_close", "gap"]].dropna().set_index("Date")
+k_predictions = pd.DataFrame(loaded_kmeans.predict(data), columns = ["labels"], index = data.index)
+data = data.merge(k_predictions, left_index = True, right_index = True).reset_index()
 
-df_model = merge_dfs(data, df, ticker)
-df_model = df_model.set_index("Date")
+df_model = merge_dfs(data.set_index("Date"), df.set_index("Date"), ticker)
+#df_model = df_model.set_index("Date")
 
 end_date = df_model.index.max()
 df_model['last_day'] = (df_model.index == end_date).astype(int)
@@ -57,7 +57,8 @@ df_model = min_max_scaling(df_model)
 X, y  = create_multivariate_rnn_data(df_model, seq_length)
 
 # X = X[0]
-X_tensor = torch.from_numpy(X[0]).type(torch.float).to(device).unsqueeze(0)
+#X_tensor = torch.from_numpy(X[0]).type(torch.float).to(device).unsqueeze(0)
+X_tensor = torch.from_numpy(X).type(torch.float).to(device).squeeze(0)
 
 input_feat = df_model.shape[1]
 hidden_size = 32
@@ -119,7 +120,7 @@ for cluster in range(n_clusters):
             
 print(actions[pred[0].item()])
 
-
+predictions = pd.DataFrame(pred.to("cpu").numpy(), columns = ["predictions"])
 
 
 
