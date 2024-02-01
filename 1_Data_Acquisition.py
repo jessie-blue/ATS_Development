@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path 
 from Preprocessing_functions import *
 
-ticker = "XLU"
+ticker = "XLF"
 n_clusters = 3
 
 df = downlaod_symbol_data(ticker)
@@ -35,7 +35,7 @@ for cluster_label in range(0,data.labels.nunique()):
 
 df_model = merge_dfs(data, df, ticker)
 
-save = False
+save = True
 day = datetime.today().strftime('%Y%m%d%H%M')
 
 if save is True:
@@ -64,21 +64,23 @@ open_low_stats = dist_stats(df, "open_low")
 open_close_stats = dist_stats(df, "open_close")
 
 ######## ADDED LATER FOR VISUAL CLUSTERS INSPECTION ##############
-testing = False
+testing = True
 
 if testing is True:
-    df2 = df_model[df_model['labels'] == 2]
-    plt.figure(figsize = (14,8))
-    plt.scatter(df2['open_low'], 
-                df2['open_close'], 
-                c = "b",
-                s = df2['gap']*200)
-    plt.title("Cluster 2 Distribution")
-    plt.xlabel('open_low')
-    plt.ylabel("open_close")
+    # df2 = df_model[df_model['labels'] == 2]
+    # plt.figure(figsize = (14,8))
+    # plt.scatter(df2['open_low'], 
+    #             df2['open_close'], 
+    #             c = "b")
+    #             #s = df2['gap'])
+    # plt.title("Cluster 2 Distribution")
+    # plt.xlabel('open_low')
+    # plt.ylabel("open_close")
     
+    cluster_inspection(df_model, 2)
     cluster_inspection(df_model, 0)
     cluster_inspection(df_model, 1)
+   # cluster_inspection(df_model, 3)
 
 
 

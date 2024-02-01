@@ -32,7 +32,8 @@ df['Date'] = pd.to_datetime(df['Date']).dt.date
 
 ### LOAD KMEANS MODEL ###
 KMEANS_PATH = f"kmeans_models/{ticker}/"
-KMEANS_NAME = f"kmeans_model_df_{ticker}_k{n_clusters}_202401251838.joblib"
+#KMEANS_NAME = f"kmeans_model_df_{ticker}_k{n_clusters}_202401251838.joblib"
+KMEANS_NAME = "kmeans_model_df_XLU_k3_202402011414.joblib"
 FILE = KMEANS_PATH + KMEANS_NAME
 loaded_kmeans = joblib.load(FILE)
 
@@ -78,7 +79,7 @@ model = LSTM(input_size=input_feat,
 # LOAD LSTM MODEL STATE DICT  
 MODEL_PATH = f"lstm_models/{ticker}/"
 #print(os.listdir(f"lstm_models/{ticker}"))
-MODEL_NAME = 'LSTM_Class_df_XLU_k3_202401251838_Epoch_4000_TestAcc_82.64_TrainAcc_82.51_202401252157'
+MODEL_NAME = 'LSTM_Class_df_XLU_k3_202402011414_Epoch_1775_TestAcc_85.06_TrainAcc_82.18_202402011426'
 interactive = False
 
 if interactive is True:
@@ -99,7 +100,7 @@ with torch.inference_mode():
 
 STATS_PATH = f"Data/{ticker}/"
 #print("KMEANS Stats files: ", os.listdir(f"Data/{ticker}"))
-STATS_NAME = 'KMEANS_Stats_df_XLU_k3_202401251838.csv'
+STATS_NAME = 'KMEANS_Stats_df_XLU_k3_202402011414.csv'
 
 cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
 
@@ -112,7 +113,7 @@ for cluster in range(n_clusters):
     mean_loss = cluster_stats.loc["mean", f"open_close_{cluster}"]
     
     if mean_profit > mean_loss and mean_loss > 0:
-        actions[cluster] = f"Place a SELL ORDER in {ticker} on the OPEN. Profit target: {mean_profit} cents"
+        actions[cluster] = f"Place a SELL ORDER in {ticker} on the OPEN. Profit target: {mean_profit} pct"
     
     else:
         actions[cluster] = f"DO NOT TRADE {ticker}"

@@ -4,7 +4,7 @@ Created on Wed Jan 17 21:24:36 2024
 
 @author: ktsar
 """
-
+import os
 import pandas as pd 
 import torch
 import torch.nn as nn
@@ -16,9 +16,9 @@ from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_dat
 from torch.utils.data import DataLoader #, TensorDataset
 from LSTM_Architecture import LSTM, TimeSeriesDataset
 
-ticker = "XLU"
-#DF_NAME = f"df_model_{ticker}_k3_202401251838.parquet" 
-DF_NAME = f"df_{ticker}_k3_202401251838.parquet"
+ticker = "XLF"
+DF_NAME = "df_XLF_k3_202402012220.parquet"
+#DF_NAME = f"df_{ticker}_k3_202401251838.parquet"
 FILE_PATH = f"Data/{ticker}/"
 FILE_PATH_NAME = FILE_PATH + DF_NAME
 
@@ -33,7 +33,9 @@ seq_length =  1
 test_size_pct = 0.15
 
 df_model = df_model.sort_index(ascending = False)
-    
+
+model_feat = pd.DataFrame(list(df_model.columns) + ["last_day"])
+
 df_model = min_max_scaling(df_model)
 
 df_model['last_day'] = (df_model.index == end_date).astype(int)
@@ -171,6 +173,12 @@ for epoch in range(epochs):
         # CREATE MODEL SAVE PATH
         MODEL_NAME = f"LSTM_Class_{DF_NAME.replace('.parquet','')}_Epoch_{epoch}_TestAcc_{test_acc:.2f}_TrainAcc_{avg_acc:.2F}_{DATE}"
         MODEL_SAVE_PATH = MODEL_PATH / MODEL_NAME
+        
+        # SAVE THE INPUT FEATURES OF THE MODEL
+        FEAT_NAME = f"LSTM_{DF_NAME.replace('.parquet','')}_NFEAT{model_feat.shape[0]}.csv"
+        if FEAT_NAME not in os.listdir():
+            FEAT_SAVE_PATH = MODEL_PATH / FEAT_NAME
+            model_feat.to_csv(FEAT_NAME, index = False)
         
         # SAVE MODEL STATE DICT
         print(f"Saving model to: {MODEL_SAVE_PATH}")

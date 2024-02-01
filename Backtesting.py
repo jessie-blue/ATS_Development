@@ -15,7 +15,7 @@ from pathlib import Path
 from Preprocessing_functions import *
 
 
-ticker = "SPY"
+ticker = "XLF"
 n_clusters = 3 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -33,7 +33,7 @@ df = create_momentum_feat(df, ticker).dropna()
 
 ### LOAD KMEANS MODEL ###
 KMEANS_PATH = f"kmeans_models/{ticker}/"
-KMEANS_NAME = f"kmeans_model_df_SPY_k3_202402012133.joblib"
+KMEANS_NAME = f"kmeans_model_df_XLF_k3_202402012220.joblib"
 FILE = KMEANS_PATH + KMEANS_NAME
 loaded_kmeans = joblib.load(FILE)
 
@@ -59,7 +59,7 @@ df1 = df_model[drop_cols]
 ### ORDER THE DATA ###
 #MODEL_PATH = Path(f"lstm_models/{ticker}")
 #FEAT_NAME = f"LSTM_df_XLU_k3_202401251838_NFEAT{model_feat.shape[0]}.csv"
-FEAT_NAME = "LSTM_df_SPY_k3_202402012133_NFEAT23.csv"
+FEAT_NAME = "LSTM_df_XLF_k3_202402012220_NFEAT23.csv"
 #FEAT_SAVE_PATH = MODEL_PATH / FEAT_NAME
 MODEL_FEAT = pd.read_csv(FEAT_NAME)['0'].to_list()
 
@@ -99,7 +99,7 @@ model = LSTM(input_size=input_feat,
 # LOAD LSTM MODEL STATE DICT  
 MODEL_PATH = f"lstm_models/{ticker}/"
 #print(os.listdir(f"lstm_models/{ticker}"))
-MODEL_NAME = 'LSTM_Class_df_SPY_k3_202402012133_Epoch_215_TestAcc_80.80_TrainAcc_72.78_202402012138'
+MODEL_NAME = 'LSTM_Class_df_XLF_k3_202402012220_Epoch_213_TestAcc_77.77_TrainAcc_65.46_202402012224'
 interactive = False
 
 if interactive is True:
@@ -130,7 +130,7 @@ del pred, output, predictions
 
 STATS_PATH = f"Data/{ticker}/"
 #print("KMEANS Stats files: ", os.listdir(f"Data/{ticker}"))
-STATS_NAME = 'KMEANS_Stats_df_SPY_k3_202402012133.csv'
+STATS_NAME = 'KMEANS_Stats_df_XLF_k3_202402012220.csv'
 
 cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
 
@@ -176,8 +176,7 @@ plt.plot(df1['pnl_cumsum'], color = 'b')
 plt.axhline(0, color = 'black', linewidth = 1)
 plt.xlabel('Date')
 plt.ylabel('Cummulative PNL')
-plt.title("Backtest Short Open Strategy")
-
+plt.title(f"Backtest Short Open Strategy - {ticker}")
 
 
 plt.figure(figsize = [10,7])
@@ -185,7 +184,7 @@ plt.plot(df1['Close'], color = 'b')
 plt.axhline(0, color = 'black', linewidth = 1)
 plt.xlabel('Date')
 plt.ylabel('Close Price')
-plt.title("Backtest Short Open Strategy")
+plt.title(f"Backtest Short Open Strategy - {ticker}")
 
 
 

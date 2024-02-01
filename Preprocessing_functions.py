@@ -40,24 +40,24 @@ def downlaod_symbol_data(symbol = "XLU", period = "120mo"):
     data = yf.Ticker(symbol)
     
     # get all stock info (slow)
-    data.info
+    #data.info
     
     # get historical market data
     df = data.history(period=period).round(2)
     
-    df['open_low'] = df['Open'] - df['Low']
+    df['open_low'] = 100*((df['Open'] - df['Low']) / df['Open']) 
     
-    df['open_close'] = df['Open'] - df['Close']
+    df['open_close'] = 100*((df['Open'] - df['Close']) / df['Open'])
     
-    df['open_high'] = df['Open'] - df['High']
+    df['open_high'] = 100*((df['Open'] - df['High']) / df['Open'])
     
-    df['high_low'] = df['High'] - df['Low']
+    df['high_low'] = 100*(abs(df['High'] - df['Low']) / df['High'])
     
-    df['low_close'] = df['Low'] - df['Close']
+    df['low_close'] = 100*((df['Low'] - df['Close']) / df['Low'])
     
-    df['high_close'] = df['High'] - df['Close']
+    df['high_close'] = 100*((df['Close'] - df['High']) / df['High'])
     
-    df['gap'] = df['Open'] - df['Close'].shift(1)
+    df['gap'] = 100*((df['Open'] - df['Close'].shift(1)) / df['Close'].shift(1))
 
     return df
 
@@ -112,7 +112,7 @@ def dist_stats(data, col):
     
     }
     
-    stats = pd.DataFrame(stats.values(), index = stats.keys(), columns= [col]).round(2)
+    stats = pd.DataFrame(stats.values(), index = stats.keys(), columns= [col]).round(4)
     
     return stats
         
@@ -203,6 +203,16 @@ def cluster_stats(data, cluster_label, col1, col2, col3):
     avg_stats = avg_stats.merge(dist_stats(avg ,col3), left_index = True, right_index = True)
 
     return avg, avg_stats
+
+
+
+def format_idx_date(df_model):
+    
+    df_model = df_model.reset_index()
+    df_model['Date'] = pd.to_datetime(df_model['Date']).dt.date
+    df_model = df_model.set_index("Date")
+    
+    return df_model
 
 
 # =============================================================================
@@ -378,11 +388,11 @@ def min_max_scaling(df_model):
 def cluster_inspection(df_model, cluster_number):
     
     df2 = df_model[df_model['labels'] == cluster_number]
-    plt.figure(figsize = (14,8))
+    plt.figure(figsize = (12,7))
     plt.scatter(df2['open_low'], 
                 df2['open_close'], 
                 c = "b",
-                s = df2['gap']*200)
+                s = df2['gap']*20)
     plt.title(f"Cluster {cluster_number} Distribution")
     plt.xlabel('open_low')
     plt.ylabel("open_close")
