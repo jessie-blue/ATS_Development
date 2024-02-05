@@ -16,8 +16,8 @@ from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_dat
 from torch.utils.data import DataLoader #, TensorDataset
 from LSTM_Architecture import LSTM, TimeSeriesDataset
 
-ticker = "XLF"
-DF_NAME = "df_XLF_k3_202402012220.parquet"
+ticker = "BTC-USD"
+DF_NAME = "df_BTC-USD_k3_202402021844.parquet"
 #DF_NAME = f"df_{ticker}_k3_202401251838.parquet"
 FILE_PATH = f"Data/{ticker}/"
 FILE_PATH_NAME = FILE_PATH + DF_NAME

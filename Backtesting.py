@@ -15,7 +15,7 @@ from pathlib import Path
 from Preprocessing_functions import *
 
 
-ticker = "XLF"
+ticker = "USO"
 n_clusters = 3 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -33,7 +33,7 @@ df = create_momentum_feat(df, ticker).dropna()
 
 ### LOAD KMEANS MODEL ###
 KMEANS_PATH = f"kmeans_models/{ticker}/"
-KMEANS_NAME = f"kmeans_model_df_XLF_k3_202402012220.joblib"
+KMEANS_NAME = f"kmeans_model_df_USO_k3_202402012100.joblib"
 FILE = KMEANS_PATH + KMEANS_NAME
 loaded_kmeans = joblib.load(FILE)
 
@@ -53,13 +53,13 @@ seq_length =  1
 df_model = df_model.sort_index(ascending = False)
 
 # preserve the price features to use in the backtest data
-drop_cols = ['Open', 'High', 'Low', 'Close', 'Stock Splits', 'Capital Gains']
+drop_cols = ['Open', 'High', 'Low', 'Close', 'Stock Splits']
 df1 = df_model[drop_cols]
 
 ### ORDER THE DATA ###
 #MODEL_PATH = Path(f"lstm_models/{ticker}")
 #FEAT_NAME = f"LSTM_df_XLU_k3_202401251838_NFEAT{model_feat.shape[0]}.csv"
-FEAT_NAME = "LSTM_df_XLF_k3_202402012220_NFEAT23.csv"
+FEAT_NAME = "LSTM_df_USO_k3_202402012100_NFEAT23.csv"
 #FEAT_SAVE_PATH = MODEL_PATH / FEAT_NAME
 MODEL_FEAT = pd.read_csv(FEAT_NAME)['0'].to_list()
 
@@ -99,7 +99,7 @@ model = LSTM(input_size=input_feat,
 # LOAD LSTM MODEL STATE DICT  
 MODEL_PATH = f"lstm_models/{ticker}/"
 #print(os.listdir(f"lstm_models/{ticker}"))
-MODEL_NAME = 'LSTM_Class_df_XLF_k3_202402012220_Epoch_213_TestAcc_77.77_TrainAcc_65.46_202402012224'
+MODEL_NAME = 'LSTM_Class_df_USO_k3_202402012100_Epoch_2017_TestAcc_59.47_TrainAcc_67.70_202402012106'
 interactive = False
 
 if interactive is True:
@@ -130,7 +130,7 @@ del pred, output, predictions
 
 STATS_PATH = f"Data/{ticker}/"
 #print("KMEANS Stats files: ", os.listdir(f"Data/{ticker}"))
-STATS_NAME = 'KMEANS_Stats_df_XLF_k3_202402012220.csv'
+STATS_NAME = 'KMEANS_Stats_df_USO_k3_202402012100.csv'
 
 cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
 
@@ -141,33 +141,152 @@ cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
 import numpy as np
 
 df1 = df1.sort_index()
-shares = 100
+df1_cols = [i for i in df1.columns if "mom" not in i]
+df1 = df1[df1_cols]
+del df1_cols
+
+capital = 50000
 tc = 3
 
-df1['target_1'] = round((1 - cluster_stats.loc["median" , "open_low_0"]/100) * df1['Open'], 2) 
-df1['target_2'] = round((1 - cluster_stats.loc["median" , "open_low_2"]/100) * df1['Open'], 2) 
+#create a list of clusters to use in the backtesting df1
+k_names = []
 
-df1['k1_true'] = (df1['target_1'] >= df1['Low']) 
-df1['k1_profit'] = (df1['k1_true'] * (df1['Open'] - df1['target_1']))* shares
-df1['k1_loss'] = (df1['Open'] - df1['Close']) * shares
-df1['k1_pnl'] = np.where(df1['k1_true'] == True, df1['k1_profit'], df1['k1_loss'])
-del df1['k1_profit'], df1['k1_loss']
+for n in range(0,3):
+    
+    open_low = cluster_stats[f'open_low_{n}']['median']
+    open_close = cluster_stats[f'open_close_{n}']['median']
+    
+    if open_low and open_close >= 0:
+        k_names.append(n)
+        
+    if open_low > open_close and open_low > 0 and abs(open_close)*3 < open_low:
+        if n not in k_names:
+            k_names.append(n)
+    
+###### N SHARES CODE ############
+# K1 RES 
+static_shares = False
+
+if static_shares is True:
+    shares = 100
+    
+    df1['target_1'] = round((1 - cluster_stats.loc["median" , "open_low_0"]/100) * df1['Open'], 2) 
+    df1['target_2'] = round((1 - cluster_stats.loc["median" , "open_low_1"]/100) * df1['Open'], 2) 
+    
+    df1['k1_true'] = (df1['target_1'] >= df1['Low']) 
+    df1['k1_profit'] = (df1['k1_true'] * (df1['Open'] - df1['target_1']))* shares
+    df1['k1_loss'] = (df1['Open'] - df1['Close']) * shares
+    df1['k1_pnl'] = np.where(df1['k1_true'] == True, df1['k1_profit'], df1['k1_loss'])
+    del df1['k1_profit'], df1['k1_loss']
+    
+    # K2 RES
+    df1['k2_true'] = df1['target_2'] >= df1['Low'] 
+    df1['k2_profit'] = (df1['k2_true'] * (df1['Open'] - df1['target_2']))* shares
+    df1['k2_loss'] = (df1['Open'] - df1['Close']) * shares
+    df1['k2_pnl'] = np.where(df1['k2_true'] == True, df1['k2_profit'], df1['k2_loss'])
+    del df1['k2_profit'], df1['k2_loss']
+    
+    # Combining results 
+    df1['k1_k2'] = np.where(df1['predictions'] == 0, df1['k1_pnl'], df1['k2_pnl'])
+    df1['k0_k1_k2'] = np.where(df1['predictions'] == 2, 0, df1['k1_k2'] )
+    df1['net_pnl'] = np.where(df1['k0_k1_k2'] != 0, df1['k0_k1_k2'] - tc, 0)
+    df1['pnl_cumsum'] = df1['net_pnl'].cumsum()
+
+################### DYNAMIC SHARES ######################################
+
+dynamic_shares_raw = False 
+
+if dynamic_shares_raw is True:
+
+    df1['shares'] = capital // df1['Close']
+    
+    # K1 RES 
+    df1['target_1'] = round((1 - cluster_stats.loc["median" , "open_low_0"]/100) * df1['Open'], 2) 
+    df1['target_2'] = round((1 - cluster_stats.loc["median" , "open_low_1"]/100) * df1['Open'], 2) 
+    
+    df1['k1_true'] = (df1['target_1'] >= df1['Low']) 
+    df1['k1_profit'] = (df1['k1_true'] * (df1['Open'] - df1['target_1']))* df1['shares']
+    df1['k1_loss'] = (df1['Open'] - df1['Close']) * df1['shares']
+    df1['k1_pnl'] = np.where(df1['k1_true'] == True, df1['k1_profit'], df1['k1_loss'])
+    del df1['k1_profit'], df1['k1_loss']
+    
+    # K2 RES
+    df1['k2_true'] = df1['target_2'] >= df1['Low'] 
+    df1['k2_profit'] = (df1['k2_true'] * (df1['Open'] - df1['target_2']))* df1['shares']
+    df1['k2_loss'] = (df1['Open'] - df1['Close']) * df1['shares']
+    df1['k2_pnl'] = np.where(df1['k2_true'] == True, df1['k2_profit'], df1['k2_loss'])
+    del df1['k2_profit'], df1['k2_loss']
+    
+    # Combining results 
+    df1['k1_k2'] = np.where(df1['predictions'] == 0, df1['k1_pnl'], df1['k2_pnl'])
+    df1['k0_k1_k2'] = np.where(df1['predictions'] == 2, 0, df1['k1_k2'] )
+    df1['net_pnl'] = np.where(df1['k0_k1_k2'] != 0, df1['k0_k1_k2'] - tc, 0)
+    df1['pnl_cumsum'] = df1['net_pnl'].cumsum()
+    
+    df1['daily_ret'] = ((df1['net_pnl'] + capital) - capital)  / capital # for sharpe ratio calc
 
 
-df1['k2_true'] = df1['target_2'] >= df1['Low'] 
-df1['k2_profit'] = (df1['k2_true'] * (df1['Open'] - df1['target_2']))* shares
-df1['k2_loss'] = (df1['Open'] - df1['Close']) * shares
-df1['k2_pnl'] = np.where(df1['k2_true'] == True, df1['k2_profit'], df1['k2_loss'])
-del df1['k2_profit'], df1['k2_loss']
+################### DYNAMIC SHARES EXPERIMENTATION ######################################
+
+experimentation = False
+
+if experimentation is True:
+    df3 = df1.copy()
+    
+    df3['shares'] = capital // df3['Close']
+    
+    # K1 RES 
+    df3['target_1'] = round((1 - cluster_stats.loc["median" , "open_low_0"]/100) * df3['Open'], 2) 
+    df3['target_2'] = round((1 - cluster_stats.loc["median" , "open_low_1"]/100) * df3['Open'], 2) 
+    
+    df3['k1_true'] = (df3['target_1'] >= df3['Low']) 
+    df3['k1_profit'] = (df3['k1_true'] * (df3['Open'] - df3['target_1']))* df3['shares']
+    df3['k1_loss'] = (df3['Open'] - df3['Close']) * df3['shares']
+    df3['k1_pnl'] = np.where(df3['k1_true'] == True, df3['k1_profit'], df3['k1_loss'])
+    #del df3['k1_profit'], df3['k1_loss']
+    
+    # K2 RES
+    df3['k2_true'] = df3['target_2'] >= df3['Low'] 
+    df3['k2_profit'] = (df3['k2_true'] * (df3['Open'] - df3['target_2']))* df3['shares']
+    df3['k2_loss'] = (df3['Open'] - df3['Close']) * df3['shares']
+    df3['k2_pnl'] = np.where(df3['k2_true'] == True, df3['k2_profit'], df3['k2_loss'])
+    #del df3['k2_profit'], df3['k2_loss']
+    
+    # Combining results 
+    df3['k1_k2'] = np.where(df3['predictions'] == 0, df3['k1_pnl'], df3['k2_pnl'])
+    df3['k0_k1_k2'] = np.where(df3['predictions'] == 2, 0, df3['k1_k2'] )
+    df3['net_pnl'] = np.where(df3['k0_k1_k2'] != 0, df3['k0_k1_k2'] - tc, 0)
+    df3['pnl_cumsum'] = df3['net_pnl'].cumsum()
+    
+    df3['daily_ret'] = ((df3['net_pnl'] + capital) - capital)  / capital # for sharpe ratio calc
+    
+    plt.plot(df3['net_pnl'])
+
+################### TILL HERE ######################################
+
+for k in k_names:
+    
+    df1['shares'] = capital // df1['Close']
+    df1[f'target_{k_names[k]}'] = round((1 - cluster_stats.loc["median" , f"open_low_{k_names[k]}"]/100) * df1['Open'], 2) 
+    
+    df1[f'k{k_names[k]}_true'] = (df1[f'target_{k_names[k]}'] >= df1['Low']) 
+    df1[f'k{k_names[k]}_profit'] = (df1[f'k{k_names[k]}_true'] * (df1['Open'] - df1[f'target_{k_names[k]}']))* df1['shares']
+    df1[f'k{k_names[k]}_loss'] = round(((df1['Open'] - df1['Close']) * df1['shares']),4)
+    df1[f'k{k_names[k]}_pnl'] = np.where(df1[f'k{k_names[k]}_true'] == True, df1[f'k{k_names[k]}_profit'], df1[f'k{k_names[k]}_loss'])
+    del df1[f'k{k_names[k]}_profit'], df1[f'k{k_names[k]}_loss']
 
 
-df1['k1_k2'] = np.where(df1['predictions'] == 0, df1['k1_pnl'], df1['k2_pnl'])
+no_trade_k = 2
 
-df1['k0_k1_k2'] = np.where(df1['predictions'] == 1, 0, df1['k1_k2'] )
-
-df1['net_pnl'] = np.where(df1['k0_k1_k2'] != 0, df1['k0_k1_k2'] - tc, 0)
-
+df1[f'k{k_names[0]}_k{k_names[1]}'] = np.where(df1['predictions'] == 0, df1[f'k{k_names[0]}_pnl'], df1[f'k{k_names[1]}_pnl'])
+df1['k0_k1_k2'] = np.where(df1['predictions'] == no_trade_k, 0, df1[f'k{k_names[0]}_k{k_names[1]}'] )
+df1['net_pnl'] = np.where(df1['k0_k1_k2'] != 0, df1['k0_k1_k2'] , 0)
 df1['pnl_cumsum'] = df1['net_pnl'].cumsum()
+df1['daily_ret'] = ((df1['net_pnl'] + capital) - capital)  / capital
+
+
+## datetime slicing 
+#df1[pd.to_datetime(df1.index) <= "2007-03-30"]
 
 
 
@@ -187,6 +306,20 @@ plt.ylabel('Close Price')
 plt.title(f"Backtest Short Open Strategy - {ticker}")
 
 
+#####   MAX DRAWDOWN
+from calculateMaxDD import calculateMaxDD
 
+cum_ret = np.cumprod(1+ df1['daily_ret']) - 1
+#plt.plot(cum_ret)
+maxDrawdown, maxDrawdownDuration, startDrawdownDay=calculateMaxDD(cum_ret.values)
+
+
+#####   SHARPE RATIO
+sharpe_ratio = round(np.sqrt(252) * np.mean(df1['daily_ret']) / np.std(df1['daily_ret']),4)
+
+
+print(f'Sharpe Ratio: {sharpe_ratio}')
+print(f'Maximum Drawdown: {round(maxDrawdown,4)}')
+print(f'Max Drawdown Duration: {maxDrawdownDuration} days' )
 
 
