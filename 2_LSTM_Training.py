@@ -14,10 +14,10 @@ from datetime import datetime
 from pathlib import Path
 from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_data, accuracy_fn
 from torch.utils.data import DataLoader #, TensorDataset
-from LSTM_Architecture import LSTM, TimeSeriesDataset
+from LSTM_Architecture import LSTM, LSTM_V3, TimeSeriesDataset
 
-ticker = "BTC-USD"
-DF_NAME = "df_BTC-USD_k3_202402021844.parquet"
+ticker = "AMLP"
+DF_NAME = "df_AMLP_k3_202402062153.parquet"
 #DF_NAME = f"df_{ticker}_k3_202401251838.parquet"
 FILE_PATH = f"Data/{ticker}/"
 FILE_PATH_NAME = FILE_PATH + DF_NAME
@@ -62,10 +62,13 @@ y_test_tensor = torch.from_numpy(y_test.values).type(torch.LongTensor)#.unsqueez
 input_feat = X_train.shape[2]
 hidden_size = 32
 num_layers = 2 
-learning_rate = 0.1
-epochs =  3000
+learning_rate = 0.01
+epochs =  int(3e4)
 num_classes = 3
 batch_size = 32
+hidden_size1 = 32
+hidden_size2 = 64
+
 
 train_dataset = TimeSeriesDataset(X_train_tensor, y_train_tensor)
 test_dataset = TimeSeriesDataset(X_test_tensor, y_test_tensor)
@@ -89,12 +92,20 @@ for _, batch in enumerate(train_loader):
     print(x_batch.shape, y_batch.shape)
     break 
 
-# INSTANTIATE MODEL
+#INSTANTIATE MODEL
 model = LSTM(input_size=input_feat, 
-             output_size=num_classes, 
-             hidden_size=hidden_size, 
-             num_layers=num_layers,
-             device=device).to(device)
+              output_size=num_classes, 
+              hidden_size=hidden_size, 
+              num_layers=num_layers,
+              device=device).to(device)
+
+
+# model = LSTM_V3(input_size=input_feat, 
+#               output_size=num_classes, 
+#               hidden_size1=hidden_size1, 
+#               hidden_size2=hidden_size2,
+#               num_layers=num_layers,
+#               device=device).to(device)
 
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(params=model.parameters(), lr=learning_rate)

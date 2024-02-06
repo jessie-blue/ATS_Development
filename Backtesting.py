@@ -15,7 +15,7 @@ from pathlib import Path
 from Preprocessing_functions import *
 
 
-ticker = "USO"
+ticker = "BTC-USD"
 n_clusters = 3 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -33,7 +33,7 @@ df = create_momentum_feat(df, ticker).dropna()
 
 ### LOAD KMEANS MODEL ###
 KMEANS_PATH = f"kmeans_models/{ticker}/"
-KMEANS_NAME = f"kmeans_model_df_USO_k3_202402012100.joblib"
+KMEANS_NAME = f"kmeans_model_df_BTC-USD_k3_202402021844.joblib"
 FILE = KMEANS_PATH + KMEANS_NAME
 loaded_kmeans = joblib.load(FILE)
 
@@ -59,7 +59,7 @@ df1 = df_model[drop_cols]
 ### ORDER THE DATA ###
 #MODEL_PATH = Path(f"lstm_models/{ticker}")
 #FEAT_NAME = f"LSTM_df_XLU_k3_202401251838_NFEAT{model_feat.shape[0]}.csv"
-FEAT_NAME = "LSTM_df_USO_k3_202402012100_NFEAT23.csv"
+FEAT_NAME = "LSTM_df_BTC-USD_k3_202402021844_NFEAT23.csv"
 #FEAT_SAVE_PATH = MODEL_PATH / FEAT_NAME
 MODEL_FEAT = pd.read_csv(FEAT_NAME)['0'].to_list()
 
@@ -99,7 +99,7 @@ model = LSTM(input_size=input_feat,
 # LOAD LSTM MODEL STATE DICT  
 MODEL_PATH = f"lstm_models/{ticker}/"
 #print(os.listdir(f"lstm_models/{ticker}"))
-MODEL_NAME = 'LSTM_Class_df_USO_k3_202402012100_Epoch_2017_TestAcc_59.47_TrainAcc_67.70_202402012106'
+MODEL_NAME = 'LSTM_Class_df_BTC-USD_k3_202402021844_Epoch_1080_TestAcc_97.06_TrainAcc_94.82_202402021853'
 interactive = False
 
 if interactive is True:
@@ -130,7 +130,7 @@ del pred, output, predictions
 
 STATS_PATH = f"Data/{ticker}/"
 #print("KMEANS Stats files: ", os.listdir(f"Data/{ticker}"))
-STATS_NAME = 'KMEANS_Stats_df_USO_k3_202402012100.csv'
+STATS_NAME = 'KMEANS_Stats_df_BTC-USD_k3_202402021844.csv'
 
 cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
 
@@ -145,7 +145,7 @@ df1_cols = [i for i in df1.columns if "mom" not in i]
 df1 = df1[df1_cols]
 del df1_cols
 
-capital = 50000
+capital = 25000
 tc = 3
 
 #create a list of clusters to use in the backtesting df1
@@ -264,10 +264,10 @@ if experimentation is True:
 
 ################### TILL HERE ######################################
 
-for k in k_names:
+for k in range(len(k_names)):
     
-    df1['shares'] = capital // df1['Close']
-    df1[f'target_{k_names[k]}'] = round((1 - cluster_stats.loc["median" , f"open_low_{k_names[k]}"]/100) * df1['Open'], 2) 
+    df1['shares'] = capital // df1['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
+    df1[f'target_{k_names[k]}'] = round((1 - cluster_stats.loc["median" , f"open_low_{k_names[k]}"]) * df1['Open'], 2) 
     
     df1[f'k{k_names[k]}_true'] = (df1[f'target_{k_names[k]}'] >= df1['Low']) 
     df1[f'k{k_names[k]}_profit'] = (df1[f'k{k_names[k]}_true'] * (df1['Open'] - df1[f'target_{k_names[k]}']))* df1['shares']
@@ -276,11 +276,11 @@ for k in k_names:
     del df1[f'k{k_names[k]}_profit'], df1[f'k{k_names[k]}_loss']
 
 
-no_trade_k = 2
+no_trade_k = [i for i in range(0,3) if i not in k_names][0] # predicted cluster for which we do not trade 
 
 df1[f'k{k_names[0]}_k{k_names[1]}'] = np.where(df1['predictions'] == 0, df1[f'k{k_names[0]}_pnl'], df1[f'k{k_names[1]}_pnl'])
 df1['k0_k1_k2'] = np.where(df1['predictions'] == no_trade_k, 0, df1[f'k{k_names[0]}_k{k_names[1]}'] )
-df1['net_pnl'] = np.where(df1['k0_k1_k2'] != 0, df1['k0_k1_k2'] , 0)
+df1['net_pnl'] = np.where(df1['k0_k1_k2'] != 0, df1['k0_k1_k2'] - tc, 0)
 df1['pnl_cumsum'] = df1['net_pnl'].cumsum()
 df1['daily_ret'] = ((df1['net_pnl'] + capital) - capital)  / capital
 
@@ -315,11 +315,13 @@ maxDrawdown, maxDrawdownDuration, startDrawdownDay=calculateMaxDD(cum_ret.values
 
 
 #####   SHARPE RATIO
-sharpe_ratio = round(np.sqrt(252) * np.mean(df1['daily_ret']) / np.std(df1['daily_ret']),4)
+sharpe_ratio = round(np.sqrt(252) * np.mean(df1['daily_ret']) / np.std(df1['daily_ret']),2)
 
+#####   AVG RETURN
+mean_ret = df1['daily_ret'].mean() * 252
 
 print(f'Sharpe Ratio: {sharpe_ratio}')
 print(f'Maximum Drawdown: {round(maxDrawdown,4)}')
 print(f'Max Drawdown Duration: {maxDrawdownDuration} days' )
-
+print(f"Average Yearly Return: {round(mean_ret*100, 2)} %")
 
