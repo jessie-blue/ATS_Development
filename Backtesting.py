@@ -15,27 +15,56 @@ from pathlib import Path
 from Preprocessing_functions import *
 
 
-ticker = "BTC-USD"
+ticker = "AMLP"
 n_clusters = 3 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+### LOAD KMEANS MODEL ###
+KMEANS_PATH = f"kmeans_models/{ticker}/"
+KMEANS_NAME = f"kmeans_model_df_AMLP_k3_202402062153.joblib"
+FILE = KMEANS_PATH + KMEANS_NAME
+loaded_kmeans = joblib.load(FILE)
 
+### LOAD FEAT LIST TO ORDER THE DATA ###
+#MODEL_PATH = Path(f"lstm_models/{ticker}")
+#FEAT_NAME = f"LSTM_df_XLU_k3_202401251838_NFEAT{model_feat.shape[0]}.csv"
+FEAT_NAME = "LSTM_df_AMLP_k3_202402062153_NFEAT23.csv"
+#FEAT_SAVE_PATH = MODEL_PATH / FEAT_NAME
+MODEL_FEAT = pd.read_csv(FEAT_NAME)['0'].to_list()
+
+# Cluster stats
+STATS_PATH = f"Data/{ticker}/"
+#print("KMEANS Stats files: ", os.listdir(f"Data/{ticker}"))
+STATS_NAME = 'KMEANS_Stats_df_AMLP_k3_202402062153.csv'
+cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
+
+# LOAD DF FOR MODEL BUILDING TO CHECK DATE RANGES 
+DF_NAME = "df_AMLP_k3_202402062153.parquet"
+df_dates = pd.read_parquet(STATS_PATH + DF_NAME)
+df_dates = format_idx_date(df_dates)
+
+# LOAD LSTM MODEL STATE DICT  
+MODEL_PATH = f"lstm_models/{ticker}/"
+MODEL_NAME = 'LSTM_Class_df_AMLP_k3_202402062153_Epoch_498_TestAcc_80.25_TrainAcc_77.07_202402062159'
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 df = downlaod_symbol_data(ticker, period = "240mo")
 df = format_idx_date(df)
 
 # Needs refactoring - take start date in the training data and select days before that
-start_date = df.index.min() + datetime.timedelta(days=3985)
-
+#start_date = df.index.min() + datetime.timedelta(days=3985)
+start_date = df_dates.index.min()
 df = df[df.index <= start_date]
+del DF_NAME, df_dates 
+
 
 df = create_momentum_feat(df, ticker).dropna()
 
-### LOAD KMEANS MODEL ###
-KMEANS_PATH = f"kmeans_models/{ticker}/"
-KMEANS_NAME = f"kmeans_model_df_BTC-USD_k3_202402021844.joblib"
-FILE = KMEANS_PATH + KMEANS_NAME
-loaded_kmeans = joblib.load(FILE)
+# ### LOAD KMEANS MODEL ###
+# KMEANS_PATH = f"kmeans_models/{ticker}/"
+# KMEANS_NAME = f"kmeans_model_df_BTC-USD_k3_202402021844.joblib"
+# FILE = KMEANS_PATH + KMEANS_NAME
+# loaded_kmeans = joblib.load(FILE)
 
 ### ASSIGN CLUSTER TO OBSERVATION ###
 data = df[["open_low", "open_close", "gap"]].dropna()
@@ -59,9 +88,9 @@ df1 = df_model[drop_cols]
 ### ORDER THE DATA ###
 #MODEL_PATH = Path(f"lstm_models/{ticker}")
 #FEAT_NAME = f"LSTM_df_XLU_k3_202401251838_NFEAT{model_feat.shape[0]}.csv"
-FEAT_NAME = "LSTM_df_BTC-USD_k3_202402021844_NFEAT23.csv"
+# FEAT_NAME = "LSTM_df_BTC-USD_k3_202402021844_NFEAT23.csv"
 #FEAT_SAVE_PATH = MODEL_PATH / FEAT_NAME
-MODEL_FEAT = pd.read_csv(FEAT_NAME)['0'].to_list()
+# MODEL_FEAT = pd.read_csv(FEAT_NAME)['0'].to_list()
 
 df_model = df_model[MODEL_FEAT]
 df2 = df_model.copy()
@@ -97,9 +126,9 @@ model = LSTM(input_size=input_feat,
              device=device).to(device)
 
 # LOAD LSTM MODEL STATE DICT  
-MODEL_PATH = f"lstm_models/{ticker}/"
+# MODEL_PATH = f"lstm_models/{ticker}/"
 #print(os.listdir(f"lstm_models/{ticker}"))
-MODEL_NAME = 'LSTM_Class_df_BTC-USD_k3_202402021844_Epoch_1080_TestAcc_97.06_TrainAcc_94.82_202402021853'
+# MODEL_NAME = 'LSTM_Class_df_BTC-USD_k3_202402021844_Epoch_1080_TestAcc_97.06_TrainAcc_94.82_202402021853'
 interactive = False
 
 if interactive is True:
@@ -128,9 +157,9 @@ df1 = df1.merge(df2, left_index = True, right_index = True)
 
 del pred, output, predictions
 
-STATS_PATH = f"Data/{ticker}/"
+# STATS_PATH = f"Data/{ticker}/"
 #print("KMEANS Stats files: ", os.listdir(f"Data/{ticker}"))
-STATS_NAME = 'KMEANS_Stats_df_BTC-USD_k3_202402021844.csv'
+# STATS_NAME = 'KMEANS_Stats_df_BTC-USD_k3_202402021844.csv'
 
 cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
 
@@ -289,23 +318,6 @@ df1['daily_ret'] = ((df1['net_pnl'] + capital) - capital)  / capital
 #df1[pd.to_datetime(df1.index) <= "2007-03-30"]
 
 
-
-plt.figure(figsize = [10,7])
-plt.plot(df1['pnl_cumsum'], color = 'b')
-plt.axhline(0, color = 'black', linewidth = 1)
-plt.xlabel('Date')
-plt.ylabel('Cummulative PNL')
-plt.title(f"Backtest Short Open Strategy - {ticker}")
-
-
-plt.figure(figsize = [10,7])
-plt.plot(df1['Close'], color = 'b')
-plt.axhline(0, color = 'black', linewidth = 1)
-plt.xlabel('Date')
-plt.ylabel('Close Price')
-plt.title(f"Backtest Short Open Strategy - {ticker}")
-
-
 #####   MAX DRAWDOWN
 from calculateMaxDD import calculateMaxDD
 
@@ -317,11 +329,62 @@ maxDrawdown, maxDrawdownDuration, startDrawdownDay=calculateMaxDD(cum_ret.values
 #####   SHARPE RATIO
 sharpe_ratio = round(np.sqrt(252) * np.mean(df1['daily_ret']) / np.std(df1['daily_ret']),2)
 
-#####   AVG RETURN
+#####   AVG YEARLY RETURN
 mean_ret = df1['daily_ret'].mean() * 252
 
 print(f'Sharpe Ratio: {sharpe_ratio}')
 print(f'Maximum Drawdown: {round(maxDrawdown,4)}')
 print(f'Max Drawdown Duration: {maxDrawdownDuration} days' )
+print(f'Start day Drawdown: {startDrawdownDay}')
 print(f"Average Yearly Return: {round(mean_ret*100, 2)} %")
+
+
+
+# Create figure and axis objects
+plt.rcParams.update({'font.size': 12})
+
+fig, ax1 = plt.subplots(figsize=(10, 7))
+plt.title(f"Backtest Short Open Strategy - {ticker}")
+
+# Plot data on the first y-axis
+ax1.plot(df1.index, df1['Close'], 'g-')
+ax1.set_xlabel('Date')
+ax1.set_ylabel('Close Price ', color='g')
+
+# Create a second y-axis
+ax2 = ax1.twinx()
+ax2.plot(df1.index, df1['pnl_cumsum'], 'b-')
+ax2.set_ylabel('Cummulative USD', color='b')
+
+# Add black dotted line at y=0
+#ax1.axhline(y=0, color='k', linestyle='--')
+ax2.axhline(y=0, color='k', linestyle='--')
+
+#Remove box lines around the chart area
+ax1.spines['top'].set_visible(False)
+ax1.spines['right'].set_visible(False)
+ax1.spines['bottom'].set_visible(False)
+ax1.spines['left'].set_visible(False)
+ax2.spines['top'].set_visible(False)
+ax2.spines['right'].set_visible(False)
+ax2.spines['bottom'].set_visible(False)
+ax2.spines['left'].set_visible(False)
+
+# Add text box
+stats_text = f"Strategy Stats:\n"
+stats_text += f'Sharpe Ratio: {sharpe_ratio} :\n'
+stats_text += f'Maximum Drawdown: {round(maxDrawdown,4)} \n'
+stats_text += f'Start day Drawdown: {startDrawdownDay} \n'
+stats_text += f"Average Yearly Return: {round(mean_ret*100, 2)} % \n"
+fig.text(0.1, 0.03, stats_text, fontsize=12,
+         verticalalignment='top', horizontalalignment='left',
+         bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
+
+plt.show()
+
+
+
+
+
+
 

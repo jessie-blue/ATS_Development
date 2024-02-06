@@ -83,5 +83,8 @@ if testing is True:
    # cluster_inspection(df_model, 3)
 
 
+#### CHECK DATA
+c = pd.read_parquet("Data/AMLP/df_AMLP_k3_202402062153.parquet")
 
-
+end_date = max(c.index)
+start_date = min(c.index)
