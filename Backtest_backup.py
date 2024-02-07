@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Wed Feb  7 16:24:40 2024
+
+@author: ktsar
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Wed Jan 31 10:23:43 2024
 
 @author: ktsar
@@ -14,63 +21,58 @@ from LSTM_Architecture import LSTM
 from pathlib import Path
 from Preprocessing_functions import *
 
-ticker = "IWM"
+
+ticker = "XLU"
 n_clusters = 3 
-time_period = "240mo"
 
 ### LOAD KMEANS MODEL ###
 KMEANS_PATH = f"kmeans_models/{ticker}/"
-print(os.listdir(KMEANS_PATH))
-idx = 0 if len(os.listdir(KMEANS_PATH)) < 2 else int(input("Select file index: "))
-KMEANS_NAME = os.listdir(KMEANS_PATH)[idx]
-print("Chosen K_MEANS MODEL file: ", KMEANS_NAME)
+KMEANS_NAME = f"kmeans_model_df_XLU_k3_202402011414.joblib"
 FILE = KMEANS_PATH + KMEANS_NAME
 loaded_kmeans = joblib.load(FILE)
 
 ### LOAD FEAT LIST TO ORDER THE DATA ###
-FEAT_PATH = f"model_features/{ticker}/"
-print(os.listdir(FEAT_PATH))
-idx = 0 if len(os.listdir(FEAT_PATH)) < 2 else int(input("Select file index (e.g. 0,1,2)"))
-FEAT_NAME = os.listdir(FEAT_PATH)[idx]
-MODEL_FEAT = pd.read_csv(FEAT_PATH + FEAT_NAME)['0'].to_list()
-#MODEL_FEAT.pop(-1)
+#MODEL_PATH = Path(f"lstm_models/{ticker}")
+#FEAT_NAME = f"LSTM_df_XLU_k3_202401251838_NFEAT{model_feat.shape[0]}.csv"
+FEAT_NAME = f"model_features/{ticker}/LSTM_df_XLU_k3_202402011414_NFEAT23.csv"
+#FEAT_SAVE_PATH = MODEL_PATH / FEAT_NAME
+MODEL_FEAT = pd.read_csv(FEAT_NAME)['0'].to_list()
 
 # Cluster stats
 STATS_PATH = f"Data/{ticker}/k_stats/"
-print("KMEANS Stats files: ", os.listdir(STATS_PATH))
-idx = 0 if len(os.listdir(STATS_PATH)) < 2 else int(input("Select file index: "))
-STATS_NAME = os.listdir(STATS_PATH)[idx]
-print("Chosen K_STATS file: ", STATS_NAME)
+#print("KMEANS Stats files: ", os.listdir(f"Data/{ticker}"))
+STATS_NAME = 'KMEANS_Stats_df_XLU_k3_202402011414.csv'
 cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
 
 # LOAD DF FOR MODEL BUILDING TO CHECK DATE RANGES 
 DF_PATH = f"Data/{ticker}/df/"
-print("DataFrame for model building: ", os.listdir(DF_PATH))
-idx = 0 if len(os.listdir(DF_PATH)) < 2 else int(input("Select file index: "))
-DF_NAME = os.listdir(DF_PATH)[idx] 
-print("Chosen DataFrame file: ", DF_NAME)
+DF_NAME = "df_XLU_k3_202402011414.parquet"
 df_dates = pd.read_parquet(DF_PATH + DF_NAME)
 df_dates = format_idx_date(df_dates)
 
 # LOAD LSTM MODEL STATE DICT  
 MODEL_PATH = f"lstm_models/{ticker}/"
-print(os.listdir(MODEL_PATH))
-idx = 0 if len(os.listdir(MODEL_PATH)) < 2 else int(input("Select file index: "))
-MODEL_NAME = os.listdir(MODEL_PATH)[idx]
-print("Chosen LST, MODEL file: ", MODEL_NAME)
+MODEL_NAME = 'LSTM_Class_df_XLU_k3_202402011414_Epoch_2283_TestAcc_86.21_TrainAcc_85.79_202402061559'
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-df = downlaod_symbol_data(ticker, period = time_period)
+df = downlaod_symbol_data(ticker, period = "240mo")
 df = format_idx_date(df)
 
-# REMOVE DATA SNOOPING 
+# Needs refactoring - take start date in the training data and select days before that
+#start_date = df.index.min() + datetime.timedelta(days=3985)
 start_date = df_dates.index.min()
 df = df[df.index <= start_date]
 del DF_NAME, df_dates 
 
 
 df = create_momentum_feat(df, ticker).dropna()
+
+# ### LOAD KMEANS MODEL ###
+# KMEANS_PATH = f"kmeans_models/{ticker}/"
+# KMEANS_NAME = f"kmeans_model_df_BTC-USD_k3_202402021844.joblib"
+# FILE = KMEANS_PATH + KMEANS_NAME
+# loaded_kmeans = joblib.load(FILE)
 
 ### ASSIGN CLUSTER TO OBSERVATION ###
 data = df[["open_low", "open_close", "gap"]].dropna()
@@ -91,10 +93,22 @@ df_model = df_model.sort_index(ascending = False)
 drop_cols = ['Open', 'High', 'Low', 'Close', 'Stock Splits']
 df1 = df_model[drop_cols]
 
+### ORDER THE DATA ###
+#MODEL_PATH = Path(f"lstm_models/{ticker}")
+#FEAT_NAME = f"LSTM_df_XLU_k3_202401251838_NFEAT{model_feat.shape[0]}.csv"
+# FEAT_NAME = "LSTM_df_BTC-USD_k3_202402021844_NFEAT23.csv"
+#FEAT_SAVE_PATH = MODEL_PATH / FEAT_NAME
+# MODEL_FEAT = pd.read_csv(FEAT_NAME)['0'].to_list()
+
 df_model = df_model[MODEL_FEAT]
 df2 = df_model.copy()
 
 ## SCALING THE DATA BEFORE CONVERTING IT INTO SUITABLE INPUT FOR RNN 
+# df_model = df_model.drop(columns = drop_cols)
+# columns_in = list(df_model.columns)
+# columns_in = [item for item in columns_in if item != "labels"]
+# columns_in.insert(0, "labels")
+
 df_model = min_max_scaling(df_model)
 df_model.columns = MODEL_FEAT
 del drop_cols
@@ -120,9 +134,19 @@ model = LSTM(input_size=input_feat,
              device=device).to(device)
 
 # LOAD LSTM MODEL STATE DICT  
-model.load_state_dict(torch.load(f = MODEL_PATH + MODEL_NAME ))
-del MODEL_PATH, MODEL_NAME
+# MODEL_PATH = f"lstm_models/{ticker}/"
+#print(os.listdir(f"lstm_models/{ticker}"))
+# MODEL_NAME = 'LSTM_Class_df_BTC-USD_k3_202402021844_Epoch_1080_TestAcc_97.06_TrainAcc_94.82_202402021853'
+interactive = False
 
+if interactive is True:
+    MODEL_IDX = int(input('Choose model index:'))
+    MODEL_NAME = os.listdir(f"lstm_models/{ticker}")[MODEL_IDX]
+
+
+model.load_state_dict(torch.load(f = MODEL_PATH + MODEL_NAME ))
+
+del MODEL_PATH, MODEL_NAME
 #### PREDICTION #### 
 model.eval()
 
@@ -141,8 +165,14 @@ df1 = df1.merge(df2, left_index = True, right_index = True)
 
 del pred, output, predictions
 
+# STATS_PATH = f"Data/{ticker}/"
+#print("KMEANS Stats files: ", os.listdir(f"Data/{ticker}"))
+# STATS_NAME = 'KMEANS_Stats_df_BTC-USD_k3_202402021844.csv'
+
 cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
-ACC = (df1['labels'] == df1['predictions']).sum() / df1.shape[1]
+
+
+#ACC = (df1['labels'] == df1['predictions']).sum() / df1.shape[1]
 
 #### BACKTESTING ####
 import numpy as np
@@ -270,10 +300,11 @@ if experimentation is True:
     plt.plot(df3['net_pnl'])
 
 ################### TILL HERE ######################################
+
 for k in range(len(k_names)):
     
     df1['shares'] = capital // df1['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
-    df1[f'target_{k_names[k]}'] = round((1 - cluster_stats.loc["median" , f"open_low_{k_names[k]}"]/100) * df1['Open'], 2) 
+    df1[f'target_{k_names[k]}'] = round((1 - cluster_stats.loc["median" , f"open_low_{k_names[k]}"]) * df1['Open'], 2) 
     
     df1[f'k{k_names[k]}_true'] = (df1[f'target_{k_names[k]}'] >= df1['Low']) 
     df1[f'k{k_names[k]}_profit'] = (df1[f'k{k_names[k]}_true'] * (df1['Open'] - df1[f'target_{k_names[k]}']))* df1['shares']
@@ -316,6 +347,7 @@ print(f'Start day Drawdown: {startDrawdownDay}')
 print(f"Average Yearly Return: {round(mean_ret*100, 2)} %")
 
 
+
 # Create figure and axis objects
 plt.rcParams.update({'font.size': 12})
 
@@ -323,7 +355,7 @@ fig, ax1 = plt.subplots(figsize=(10, 7))
 plt.title(f"Backtest Short Open Strategy - {ticker}")
 
 # Plot data on the first y-axis
-ax1.plot(df1.index, df1['Close'], 'g-', alpha = 0.5)
+ax1.plot(df1.index, df1['Close'], 'g-')
 ax1.set_xlabel('Date')
 ax1.set_ylabel('Close Price ', color='g')
 
@@ -347,22 +379,13 @@ ax2.spines['bottom'].set_visible(False)
 ax2.spines['left'].set_visible(False)
 
 # Add text box
-stats_text = f'Sharpe Ratio: {sharpe_ratio} :\n'
-stats_text += f'Maximum Drawdown: {round(maxDrawdown*100,2)}% \n'
-stats_text += f'Start day Drawdown: {startDrawdownDay} day \n'
-stats_text += f"Drawdown Duration: {int(maxDrawdownDuration)} days \n"
+stats_text = f"Strategy Stats:\n"
+stats_text += f'Sharpe Ratio: {sharpe_ratio} :\n'
+stats_text += f'Maximum Drawdown: {round(maxDrawdown,4)} \n'
+stats_text += f'Start day Drawdown: {startDrawdownDay} \n'
 stats_text += f"Average Yearly Return: {round(mean_ret*100, 2)} % \n"
 fig.text(0.1, 0.03, stats_text, fontsize=12,
          verticalalignment='top', horizontalalignment='left',
          bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
 
-plt.savefig(f"Short_Open_Backtests/Backtest_{ticker}", bbox_inches='tight')
-
 plt.show()
-
-
-
-
-
-
-

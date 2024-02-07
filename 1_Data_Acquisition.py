@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path 
 from Preprocessing_functions import *
 
-ticker = "AMLP"
+ticker = "IWM"
 n_clusters = 3
 
 df = downlaod_symbol_data(ticker)
@@ -40,7 +40,7 @@ day = datetime.today().strftime('%Y%m%d%H%M')
 
 if save is True:
         
-    DATA_MODEL_PATH = Path(f"Data/{ticker}")
+    DATA_MODEL_PATH = Path(f"Data/{ticker}/df")
     DATA_MODEL_PATH.mkdir(parents = True, exist_ok = True)
     
     DATA_MODEL_NAME =  f"df_{ticker}_k{n_clusters}_{day}.parquet"
@@ -49,7 +49,9 @@ if save is True:
     
     # Save Cluster stats
     STATS_MODEL_NAME = f"KMEANS_Stats_{DATA_MODEL_NAME.replace('.parquet', '')}.csv"
-    STATS_SAVE_PATH = DATA_MODEL_PATH / STATS_MODEL_NAME
+    STATS_PATH = Path(f"Data/{ticker}/k_stats")
+    STATS_PATH.mkdir(parents = True, exist_ok= True)
+    STATS_SAVE_PATH = STATS_PATH / STATS_MODEL_NAME
     cluster_dist.to_csv(STATS_SAVE_PATH, index = True)   
     
     # Save kmeans model to a file using joblib
@@ -67,24 +69,24 @@ open_close_stats = dist_stats(df, "open_close")
 testing = True
 
 if testing is True:
-    # df2 = df_model[df_model['labels'] == 2]
-    # plt.figure(figsize = (14,8))
-    # plt.scatter(df2['open_low'], 
-    #             df2['open_close'], 
-    #             c = "b")
-    #             #s = df2['gap'])
-    # plt.title("Cluster 2 Distribution")
-    # plt.xlabel('open_low')
-    # plt.ylabel("open_close")
+    df2 = df_model[df_model['labels'] == 2]
+    plt.figure(figsize = (14,8))
+    plt.scatter(df2['open_low'], 
+                df2['open_close'], 
+                c = "b")
+                #s = df2['gap'])
+    plt.title("Cluster 2 Distribution")
+    plt.xlabel('open_low')
+    plt.ylabel("open_close")
     
-    cluster_inspection(df_model, 2)
+   # cluster_inspection(df_model, 2)
     cluster_inspection(df_model, 0)
     cluster_inspection(df_model, 1)
    # cluster_inspection(df_model, 3)
 
 
-#### CHECK DATA
-c = pd.read_parquet("Data/AMLP/df_AMLP_k3_202402062153.parquet")
+# #### CHECK DATA
+# c = pd.read_parquet("Data/AMLP/df_AMLP_k3_202402062153.parquet")
 
-end_date = max(c.index)
-start_date = min(c.index)
+# end_date = max(c.index)
+# start_date = min(c.index)

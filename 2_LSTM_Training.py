@@ -12,14 +12,17 @@ import torch.optim
 
 from datetime import datetime 
 from pathlib import Path
-from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_data, accuracy_fn
+from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_data, accuracy_fn, format_idx_date
 from torch.utils.data import DataLoader #, TensorDataset
 from LSTM_Architecture import LSTM, LSTM_V3, TimeSeriesDataset
 
-ticker = "AMLP"
-DF_NAME = "df_AMLP_k3_202402062153.parquet"
-#DF_NAME = f"df_{ticker}_k3_202401251838.parquet"
-FILE_PATH = f"Data/{ticker}/"
+ticker = "IWM"
+
+# LOAD DF FOR MODEL BUILDING 
+FILE_PATH = f"Data/{ticker}/df/"
+print("DataFrames for model building: ", os.listdir(FILE_PATH))
+idx = 0 if len(os.listdir(FILE_PATH)) else int(input("Select file index: "))
+DF_NAME = os.listdir(FILE_PATH)[idx] 
 FILE_PATH_NAME = FILE_PATH + DF_NAME
 
 df_model = pd.read_parquet(FILE_PATH_NAME)
@@ -39,6 +42,8 @@ model_feat = pd.DataFrame(list(df_model.columns) + ["last_day"])
 df_model = min_max_scaling(df_model)
 
 df_model['last_day'] = (df_model.index == end_date).astype(int)
+
+#model_feat = pd.DataFrame(list(df_model.columns))
 
 X, y  = create_multivariate_rnn_data(df_model, seq_length)
 
@@ -63,11 +68,13 @@ input_feat = X_train.shape[2]
 hidden_size = 32
 num_layers = 2 
 learning_rate = 0.01
-epochs =  int(3e4)
+momentum = 0.9
+epochs =  int(2e4)
 num_classes = 3
 batch_size = 32
 hidden_size1 = 32
 hidden_size2 = 64
+
 
 
 train_dataset = TimeSeriesDataset(X_train_tensor, y_train_tensor)
@@ -93,22 +100,27 @@ for _, batch in enumerate(train_loader):
     break 
 
 #INSTANTIATE MODEL
-model = LSTM(input_size=input_feat, 
-              output_size=num_classes, 
-              hidden_size=hidden_size, 
-              num_layers=num_layers,
-              device=device).to(device)
+base_lstm = True
 
+if base_lstm is True:
+    model = LSTM(input_size=input_feat, 
+                  output_size=num_classes, 
+                  hidden_size=hidden_size, 
+                  num_layers=num_layers,
+                  device=device).to(device)
 
-# model = LSTM_V3(input_size=input_feat, 
-#               output_size=num_classes, 
-#               hidden_size1=hidden_size1, 
-#               hidden_size2=hidden_size2,
-#               num_layers=num_layers,
-#               device=device).to(device)
+else:
+    model = LSTM_V3(input_size=input_feat, 
+                  output_size=num_classes, 
+                  hidden_size1=hidden_size1, 
+                  hidden_size2=hidden_size2,
+                  num_layers=num_layers,
+                  device=device).to(device)
 
 loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(params=model.parameters(), lr=learning_rate)
+optimizer = torch.optim.SGD(params=model.parameters(), 
+                            lr=learning_rate, 
+                            momentum = momentum )
 
 torch.manual_seed(42)
 
@@ -186,10 +198,12 @@ for epoch in range(epochs):
         MODEL_SAVE_PATH = MODEL_PATH / MODEL_NAME
         
         # SAVE THE INPUT FEATURES OF THE MODEL
+        FEAT_PATH = Path(f"model_features/{ticker}")
+        FEAT_PATH.mkdir(parents= True, exist_ok= True)
         FEAT_NAME = f"LSTM_{DF_NAME.replace('.parquet','')}_NFEAT{model_feat.shape[0]}.csv"
-        if FEAT_NAME not in os.listdir():
-            FEAT_SAVE_PATH = MODEL_PATH / FEAT_NAME
-            model_feat.to_csv(FEAT_NAME, index = False)
+        if FEAT_NAME not in os.listdir(FEAT_PATH):
+            FEAT_SAVE_PATH = FEAT_PATH / FEAT_NAME
+            model_feat.to_csv(FEAT_SAVE_PATH, index = False)
         
         # SAVE MODEL STATE DICT
         print(f"Saving model to: {MODEL_SAVE_PATH}")
@@ -197,7 +211,6 @@ for epoch in range(epochs):
     
     #print(f"Epoch: {epoch}, Loss: {avg_loss:.4f}, Accuracy: {avg_acc:.2f} ")
     print(f"Epoch: {epoch}, Train Loss: {avg_loss:.4f}, Train Acc: {avg_acc:.2f}, Test Loss: {test_loss:.4f}, Test Accuracy: {test_acc:.2f}" )
-
 
     if avg_loss == 100:
         break
