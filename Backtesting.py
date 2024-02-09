@@ -14,7 +14,7 @@ from LSTM_Architecture import LSTM
 from pathlib import Path
 from Preprocessing_functions import *
 
-ticker = "XLU"
+ticker = "SPY"
 n_clusters = 3 
 time_period = "240mo"
 
@@ -368,7 +368,8 @@ sharpe_ratio = round(np.sqrt(252) * np.mean(df1['daily_ret']) / np.std(df1['dail
 mean_ret = df1['daily_ret'].mean() * 252
 
 import numpy as np
-corr = np.corrcoef(df1['daily_ret'], df1['Close'])
+p_change = df1['Close'].pct_change().dropna() #/ df1['Close'].shift(1)
+corr = np.corrcoef(p_change, df1['Close'][1:])
 
 
 print(f"Correlation Price / Return: " , round(corr[1][0], 2))
@@ -377,7 +378,6 @@ print(f'Maximum Drawdown: {round(maxDrawdown,4)}')
 print(f'Max Drawdown Duration: {maxDrawdownDuration} days' )
 print(f'Start day Drawdown: {startDrawdownDay}')
 print(f"Average Yearly Return: {round(mean_ret*100, 2)} %")
-
 
 # Create figure and axis objects
 plt.rcParams.update({'font.size': 12})
@@ -420,7 +420,8 @@ fig.text(0.1, 0.03, stats_text, fontsize=12,
          verticalalignment='top', horizontalalignment='left',
          bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
 
-#plt.savefig(f"Short_Open_Backtests/Backtest_{ticker}", bbox_inches='tight')
+
+plt.savefig(f"Short_Open_Backtests/Backtest_{ticker} with Half Kelly Allocation", bbox_inches='tight')
 
 plt.show()
 
