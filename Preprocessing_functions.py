@@ -10,11 +10,13 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 import matplotlib.pyplot as plt 
+import torch
+import torch.nn as nn
+
+from datetime import date 
 from scipy.stats import skew, norm, kurtosis
 from mpl_toolkits import mplot3d
 from sklearn.cluster import KMeans
-import torch
-import torch.nn as nn
 
 
 def downlaod_symbol_data(symbol = "XLU", period = "120mo"):
@@ -418,17 +420,43 @@ def accuracy_fn(y_true, y_pred):
     return acc
 
 
+from datetime import date 
+
+def kelly_criterion(ticker, 
+                    date_to = date.today(), 
+                    period = "240mo"):
+    
+    from dateutil.relativedelta import relativedelta
+    
+    data = yf.Ticker(ticker)
+    df = data.history(period=period).round(2)
+    df = format_idx_date(df)
+    
+    date_from = pd.to_datetime(date_to) - relativedelta(months=6)
+    
+    df = df[df.index <= pd.to_datetime(date_to)]
+    df = df[df.index >= pd.to_datetime(date_from)]
+    
+
+    df['ret'] = round(df['Close'].pct_change(), 6)
+    mean_ret = df["ret"].mean()
+    std = df["ret"].std() 
+    
+    kelly = mean_ret / std**2
+    
+    if abs(kelly) > 4:
+        kelly = 4
+    
+    #print(f"Kelly Calculation window: From: {df.index.min()} To: {df.index.max()}")
+    return round(abs(kelly) , 2)
+    
 
 
 
 
 
 
-
-
-
-
-
+#d , k  = kelly_criterion("XLU")
 
 
 

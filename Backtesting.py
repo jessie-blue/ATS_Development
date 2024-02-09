@@ -14,7 +14,7 @@ from LSTM_Architecture import LSTM
 from pathlib import Path
 from Preprocessing_functions import *
 
-ticker = "IWM"
+ticker = "XLU"
 n_clusters = 3 
 time_period = "240mo"
 
@@ -269,27 +269,87 @@ if experimentation is True:
     
     plt.plot(df3['net_pnl'])
 
-################### TILL HERE ######################################
-for k in range(len(k_names)):
+################### ADDING KELLY ######################################
+
+half_kelly_metric = True
+
+if half_kelly_metric is True:
     
-    df1['shares'] = capital // df1['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
-    df1[f'target_{k_names[k]}'] = round((1 - cluster_stats.loc["median" , f"open_low_{k_names[k]}"]/100) * df1['Open'], 2) 
+    start_capital = 1e4
+    no_trade_k = [i for i in range(0,3) if i not in k_names][0]
+    df = pd.DataFrame()
+    half_kelly = kelly_criterion(ticker, df1.index.min()) / 2 
     
-    df1[f'k{k_names[k]}_true'] = (df1[f'target_{k_names[k]}'] >= df1['Low']) 
-    df1[f'k{k_names[k]}_profit'] = (df1[f'k{k_names[k]}_true'] * (df1['Open'] - df1[f'target_{k_names[k]}']))* df1['shares']
-    df1[f'k{k_names[k]}_loss'] = round(((df1['Open'] - df1['Close']) * df1['shares']),4)
-    df1[f'k{k_names[k]}_pnl'] = np.where(df1[f'k{k_names[k]}_true'] == True, df1[f'k{k_names[k]}_profit'], df1[f'k{k_names[k]}_loss'])
-    del df1[f'k{k_names[k]}_profit'], df1[f'k{k_names[k]}_loss']
+    for date, row in df1.iterrows():
+        
+        if (date.month == 1 and date.day in (29,30,31)) or (date.month == 7 and date.day in (29,30,31)): 
+            half_kelly = kelly_criterion(ticker, date) / 2
+            print(date)
+        
+        for k in range(len(k_names)):
+            
+            row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
+            row[f'target_{k_names[k]}'] = round((1 - cluster_stats.loc["median" , f"open_low_{k_names[k]}"]/100) * row['Open'], 2) 
+            row[f'k{k_names[k]}_true'] = (row[f'target_{k_names[k]}'] >= row['Low']) 
+            row[f'k{k_names[k]}_profit'] = (row[f'k{k_names[k]}_true'] * (row['Open'] - row[f'target_{k_names[k]}']))* row['shares']
+            row[f'k{k_names[k]}_loss'] = round(((row['Open'] - row['Close']) * row['shares']),4)
+            row[f'k{k_names[k]}_pnl'] = np.where(row[f'k{k_names[k]}_true'] == True, row[f'k{k_names[k]}_profit'], row[f'k{k_names[k]}_loss'])
+            del row[f'k{k_names[k]}_profit'], row[f'k{k_names[k]}_loss']
+            
+        
+        row[f'k{k_names[0]}_k{k_names[1]}'] = np.where(row['predictions'] == 0, row[f'k{k_names[0]}_pnl'], row[f'k{k_names[1]}_pnl'])
+        row['k0_k1_k2'] = np.where(row['predictions'] == no_trade_k, 0, row[f'k{k_names[0]}_k{k_names[1]}'] )
+        row['net_pnl'] = np.where(row['k0_k1_k2'] != 0, row['k0_k1_k2'] - tc, 0)
+        row['eod_equity'] = start_capital + row['net_pnl']
+        row['daily_ret'] = row['eod_equity'] / start_capital - 1
+        row['half_kelly'] = half_kelly
+        
+        start_capital += row['net_pnl']
+        df = pd.concat([df, row.to_frame().transpose()], axis= 0)
+    
+    #### SET DATATYPES IN THE NEW DF
+    for col in list(df.columns):
+        
+        if ("true" or "last_day") in col:
+            df[col] = df[col].astype("bool")
+            
+        elif ("labels" or "Volume" or "predictions") in col:
+            df[col] = df[col].astype("int32")
+        
+        else:
+            df[col] = df[col].astype("float64")
+        
+    del df1
+    
+    df1 = df.copy()
+    
+    df1['pnl_cumsum'] = df1['net_pnl'].cumsum()
 
+# =============================================================================
+# ## DEFAULT CALCULATION WITH FIXED CAPITAL (NO KELLY CRITERION) 
+# =============================================================================
 
-no_trade_k = [i for i in range(0,3) if i not in k_names][0] # predicted cluster for which we do not trade 
+if half_kelly_metric is False:
 
-df1[f'k{k_names[0]}_k{k_names[1]}'] = np.where(df1['predictions'] == 0, df1[f'k{k_names[0]}_pnl'], df1[f'k{k_names[1]}_pnl'])
-df1['k0_k1_k2'] = np.where(df1['predictions'] == no_trade_k, 0, df1[f'k{k_names[0]}_k{k_names[1]}'] )
-df1['net_pnl'] = np.where(df1['k0_k1_k2'] != 0, df1['k0_k1_k2'] - tc, 0)
-df1['pnl_cumsum'] = df1['net_pnl'].cumsum()
-df1['daily_ret'] = ((df1['net_pnl'] + capital) - capital)  / capital
-
+    for k in range(len(k_names)):
+        
+        df1['shares'] = capital // df1['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
+        df1[f'target_{k_names[k]}'] = round((1 - cluster_stats.loc["median" , f"open_low_{k_names[k]}"]/100) * df1['Open'], 2) 
+        
+        df1[f'k{k_names[k]}_true'] = (df1[f'target_{k_names[k]}'] >= df1['Low']) 
+        df1[f'k{k_names[k]}_profit'] = (df1[f'k{k_names[k]}_true'] * (df1['Open'] - df1[f'target_{k_names[k]}']))* df1['shares']
+        df1[f'k{k_names[k]}_loss'] = round(((df1['Open'] - df1['Close']) * df1['shares']),4)
+        df1[f'k{k_names[k]}_pnl'] = np.where(df1[f'k{k_names[k]}_true'] == True, df1[f'k{k_names[k]}_profit'], df1[f'k{k_names[k]}_loss'])
+        del df1[f'k{k_names[k]}_profit'], df1[f'k{k_names[k]}_loss']
+    
+    no_trade_k = [i for i in range(0,3) if i not in k_names][0] # predicted cluster for which we do not trade 
+    
+    df1[f'k{k_names[0]}_k{k_names[1]}'] = np.where(df1['predictions'] == 0, df1[f'k{k_names[0]}_pnl'], df1[f'k{k_names[1]}_pnl'])
+    df1['k0_k1_k2'] = np.where(df1['predictions'] == no_trade_k, 0, df1[f'k{k_names[0]}_k{k_names[1]}'] )
+    df1['net_pnl'] = np.where(df1['k0_k1_k2'] != 0, df1['k0_k1_k2'] - tc, 0)
+    df1['pnl_cumsum'] = df1['net_pnl'].cumsum()
+    df1['daily_ret'] = ((df1['net_pnl'] + capital) - capital)  / capital
+###########################################################################################
 
 ## datetime slicing 
 #df1[pd.to_datetime(df1.index) <= "2007-03-30"]
@@ -299,9 +359,7 @@ df1['daily_ret'] = ((df1['net_pnl'] + capital) - capital)  / capital
 from calculateMaxDD import calculateMaxDD
 
 cum_ret = np.cumprod(1+ df1['daily_ret']) - 1
-#plt.plot(cum_ret)
 maxDrawdown, maxDrawdownDuration, startDrawdownDay=calculateMaxDD(cum_ret.values)
-
 
 #####   SHARPE RATIO
 sharpe_ratio = round(np.sqrt(252) * np.mean(df1['daily_ret']) / np.std(df1['daily_ret']),2)
@@ -309,6 +367,11 @@ sharpe_ratio = round(np.sqrt(252) * np.mean(df1['daily_ret']) / np.std(df1['dail
 #####   AVG YEARLY RETURN
 mean_ret = df1['daily_ret'].mean() * 252
 
+import numpy as np
+corr = np.corrcoef(df1['daily_ret'], df1['Close'])
+
+
+print(f"Correlation Price / Return: " , round(corr[1][0], 2))
 print(f'Sharpe Ratio: {sharpe_ratio}')
 print(f'Maximum Drawdown: {round(maxDrawdown,4)}')
 print(f'Max Drawdown Duration: {maxDrawdownDuration} days' )
@@ -329,12 +392,12 @@ ax1.set_ylabel('Close Price ', color='g')
 
 # Create a second y-axis
 ax2 = ax1.twinx()
-ax2.plot(df1.index, df1['pnl_cumsum'], 'b-')
-ax2.set_ylabel('Cummulative USD', color='b')
+ax2.plot(df1.index, df1['eod_equity'], 'b-')
+ax2.set_ylabel('Equity USD', color='b')
 
 # Add black dotted line at y=0
 #ax1.axhline(y=0, color='k', linestyle='--')
-ax2.axhline(y=0, color='k', linestyle='--')
+ax2.axhline(y=1e4, color='k', linestyle='--')
 
 #Remove box lines around the chart area
 ax1.spines['top'].set_visible(False)
@@ -346,6 +409,7 @@ ax2.spines['right'].set_visible(False)
 ax2.spines['bottom'].set_visible(False)
 ax2.spines['left'].set_visible(False)
 
+
 # Add text box
 stats_text = f'Sharpe Ratio: {sharpe_ratio} :\n'
 stats_text += f'Maximum Drawdown: {round(maxDrawdown*100,2)}% \n'
@@ -356,7 +420,7 @@ fig.text(0.1, 0.03, stats_text, fontsize=12,
          verticalalignment='top', horizontalalignment='left',
          bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
 
-plt.savefig(f"Short_Open_Backtests/Backtest_{ticker}", bbox_inches='tight')
+#plt.savefig(f"Short_Open_Backtests/Backtest_{ticker}", bbox_inches='tight')
 
 plt.show()
 
