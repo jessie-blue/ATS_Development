@@ -14,7 +14,7 @@ from LSTM_Architecture import LSTM
 from pathlib import Path
 from Preprocessing_functions import *
 
-ticker = "SPY"
+ticker = "XLB"
 n_clusters = 3 
 time_period = "240mo"
 
@@ -57,7 +57,7 @@ MODEL_PATH = f"lstm_models/{ticker}/"
 print(os.listdir(MODEL_PATH))
 idx = 0 if len(os.listdir(MODEL_PATH)) < 2 else int(input("Select file index: "))
 MODEL_NAME = os.listdir(MODEL_PATH)[idx]
-print("Chosen LST, MODEL file: ", MODEL_NAME)
+print("Chosen LSTM, MODEL file: ", MODEL_NAME)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

@@ -16,7 +16,7 @@ from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_dat
 from torch.utils.data import DataLoader #, TensorDataset
 from LSTM_Architecture import LSTM, LSTM_V3, TimeSeriesDataset
 
-ticker = "IWM"
+ticker = "XLB"
 
 # LOAD DF FOR MODEL BUILDING 
 FILE_PATH = f"Data/{ticker}/df/"
@@ -119,8 +119,8 @@ else:
 
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(params=model.parameters(), 
-                            lr=learning_rate, 
-                            momentum = momentum )
+                            lr=learning_rate) #, 
+                            #momentum = momentum )
 
 torch.manual_seed(42)
 
