@@ -66,7 +66,7 @@ open_low_stats = dist_stats(df, "open_low")
 open_close_stats = dist_stats(df, "open_close")
 
 ######## ADDED LATER FOR VISUAL CLUSTERS INSPECTION ##############
-testing = True
+testing = False
 
 if testing is True:
     df2 = df_model[df_model['labels'] == 2]
@@ -85,8 +85,3 @@ if testing is True:
    # cluster_inspection(df_model, 3)
 
 
-# #### CHECK DATA
-# c = pd.read_parquet("Data/AMLP/df_AMLP_k3_202402062153.parquet")
-
-# end_date = max(c.index)
-# start_date = min(c.index)
