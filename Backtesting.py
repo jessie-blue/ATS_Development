@@ -14,7 +14,7 @@ from LSTM_Architecture import LSTM
 from pathlib import Path
 from Preprocessing_functions import *
 
-ticker = "XLB"
+ticker = "XLU"
 n_clusters = 3 
 time_period = "240mo"
 
@@ -65,9 +65,12 @@ df = downlaod_symbol_data(ticker, period = time_period)
 df = format_idx_date(df)
 
 # REMOVE DATA SNOOPING 
-start_date = df_dates.index.min()
-df = df[df.index <= start_date]
-del DF_NAME, df_dates 
+out_sample = False
+
+if out_sample is True:
+    start_date = df_dates.index.min()
+    df = df[df.index <= start_date]
+    del DF_NAME, df_dates 
 
 
 df = create_momentum_feat(df, ticker).dropna()
@@ -420,8 +423,9 @@ fig.text(0.1, 0.03, stats_text, fontsize=12,
          verticalalignment='top', horizontalalignment='left',
          bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
 
-
-plt.savefig(f"Short_Open_Backtests/Backtest_{ticker} with Half Kelly Allocation", bbox_inches='tight')
+save = False
+if save is True:
+    plt.savefig(f"Short_Open_Backtests/Backtest_{ticker} with Half Kelly Allocation", bbox_inches='tight')
 
 plt.show()
 

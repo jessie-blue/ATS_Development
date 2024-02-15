@@ -16,7 +16,7 @@ from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_dat
 from torch.utils.data import DataLoader #, TensorDataset
 from LSTM_Architecture import LSTM, LSTM_V3, TimeSeriesDataset
 
-ticker = "XLB"
+ticker = "VXX"
 
 # LOAD DF FOR MODEL BUILDING 
 FILE_PATH = f"Data/{ticker}/df/"
@@ -42,8 +42,6 @@ model_feat = pd.DataFrame(list(df_model.columns) + ["last_day"])
 df_model = min_max_scaling(df_model)
 
 df_model['last_day'] = (df_model.index == end_date).astype(int)
-
-#model_feat = pd.DataFrame(list(df_model.columns))
 
 X, y  = create_multivariate_rnn_data(df_model, seq_length)
 
@@ -76,21 +74,17 @@ hidden_size1 = 32
 hidden_size2 = 64
 
 
-
 train_dataset = TimeSeriesDataset(X_train_tensor, y_train_tensor)
 test_dataset = TimeSeriesDataset(X_test_tensor, y_test_tensor)
-
 
 train_loader = DataLoader(train_dataset, 
                           batch_size = batch_size,
                           shuffle = False)
 
-
 test_loader = DataLoader(test_dataset, 
                           batch_size = batch_size,
                           shuffle = False)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 ### CHECKING INPUT DIMENSIONS
 for _, batch in enumerate(train_loader):
@@ -119,8 +113,8 @@ else:
 
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(params=model.parameters(), 
-                            lr=learning_rate) #, 
-                            #momentum = momentum )
+                            lr=learning_rate, 
+                            momentum = momentum)
 
 torch.manual_seed(42)
 

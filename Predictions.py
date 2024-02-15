@@ -152,12 +152,16 @@ for ticker in tickers:
     # =============================================================================
     
     if "SELL" in actions[pred[0].item()]:
-    
+        
+        kelly = abs(kelly_criterion(ticker, period = "6mo"))
+        
         strat = 'Short_Open'
         symbol = ticker
         last_price = df['Close'][-1]
-        capital = 1e4
-        n_shares = int(capital // last_price) 
+        capital =  1e4
+        half_kelly = kelly / 2
+        bp_used = capital * half_kelly
+        n_shares = int(bp_used // last_price) 
         open_position_price = 'at_open'
         target_price = 1 - cluster_stats.loc["median", f"open_low_{pred[0].item()}"] / 100
         stop_price = 'at_close'
@@ -166,7 +170,9 @@ for ticker in tickers:
             "strat" : strat,
             "ticker" : ticker,
             "last_close_price" : df['Close'][-1],
-            "capital" : capital,
+            "capital" : capital, # to be determined by a portfolio optimization engine
+            "half_kelly" : half_kelly,
+            "bp_used" : bp_used,
             "n_shares" : n_shares ,
             "open_position": open_position_price,
             "target_price"  : target_price,

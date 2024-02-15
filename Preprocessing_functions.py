@@ -447,7 +447,7 @@ def kelly_criterion(ticker,
     if abs(kelly) > 4:
         kelly = 4
     
-    #print(f"Kelly Calculation window: From: {df.index.min()} To: {df.index.max()}")
+    print(f"Kelly Calculation window: From: {df.index.min()} To: {df.index.max()}")
     return round(abs(kelly) , 2)
     
 
