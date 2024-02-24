@@ -24,8 +24,8 @@ for ticker in tickers:
     
     target_pct = orders[orders['ticker'] == ticker]['target_price'].item()
     
-    open_price = downlaod_symbol_data(ticker, period = "1day")['Open'].item()
+    open_price = downlaod_symbol_data(ticker, period = "1mo")['Open'].iloc[0].item()
     target = round(open_price * target_pct, 2)
 
-    print(f"{ticker} - Price target = {target}")
+    print(f"{date} {ticker} - Price target = {target}")
 

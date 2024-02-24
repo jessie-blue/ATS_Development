@@ -14,7 +14,7 @@ from LSTM_Architecture import LSTM
 from pathlib import Path
 from Preprocessing_functions import *
 
-ticker = "XLU"
+ticker = "AMLP"
 n_clusters = 3 
 time_period = "240mo"
 
@@ -65,7 +65,7 @@ df = downlaod_symbol_data(ticker, period = time_period)
 df = format_idx_date(df)
 
 # REMOVE DATA SNOOPING 
-out_sample = False
+out_sample = True
 
 if out_sample is True:
     start_date = df_dates.index.min()

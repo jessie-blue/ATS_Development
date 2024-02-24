@@ -1,0 +1,2 @@
+strat,ticker,last_close_price,capital,half_kelly,bp_used,n_shares,open_position,target_price,stop_price
+Short_Open,XLI,118.03,10000.0,2.0,20000.0,169,at_open,0.994031,at_close
