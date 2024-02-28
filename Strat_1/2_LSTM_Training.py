@@ -16,7 +16,7 @@ from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_dat
 from torch.utils.data import DataLoader #, TensorDataset
 from LSTM_Architecture import LSTM, LSTM_V3, TimeSeriesDataset
 
-ticker = "VXX"
+ticker = "XLP"
 
 # LOAD DF FOR MODEL BUILDING 
 FILE_PATH = f"Data/{ticker}/df/"

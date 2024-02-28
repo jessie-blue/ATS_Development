@@ -1,0 +1,4 @@
+strat,ticker,last_close_price,capital,half_kelly,bp_used,n_shares,open_position,target_price,expected_return,stop_price,low,high,pnl,eod_capital
+Short_Open,USO,72.79,10000,1,10000,137,73.21,71.15,0.028095,73.85,73.14,74.16,-87.68,9912.32
+Short_Open,XLI,120.04,10000,4,40000,333,120.3,119.58,0.005969,120.22,119.72,120.34,26.64,10026.64
+Short_Open,AMLP,45.72,10000,4,40000,874,45.79,45.45,0.00749,45.89,45.75,46.12,-87.4,9912.6

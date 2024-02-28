@@ -153,18 +153,25 @@ for ticker in tickers:
     
     if "SELL" in actions[pred[0].item()]:
         
+        strats = pd.read_csv("strategies.csv")
+        strats = strats[strats['ticker'] == ticker]
+        
         kelly = abs(kelly_criterion(ticker, period = "6mo"))
         
         strat = 'Short_Open'
         symbol = ticker
         last_price = df['Close'][-1]
-        capital =  1e4
+        capital = strats['current_capital'].item()
         half_kelly = kelly / 2
+        if half_kelly < 1:
+            half_kelly = 1 
         bp_used = capital * half_kelly
         n_shares = int(bp_used // last_price) 
         open_position_price = 'at_open'
         target_price = 1 - cluster_stats.loc["median", f"open_low_{pred[0].item()}"] / 100
+        exp_ret = 1 - target_price
         stop_price = 'at_close'
+        
         
         orders = {
             "strat" : strat,
@@ -176,13 +183,14 @@ for ticker in tickers:
             "n_shares" : n_shares ,
             "open_position": open_position_price,
             "target_price"  : target_price,
+            "expected_return" : round(exp_ret, 6),
             "stop_price" : stop_price
             }
         
         orders = pd.DataFrame(orders, columns = orders.keys(), index = [1] )
         date = datetime.today().strftime('%Y_%m_%d')
         
-        FILE_PATH = "orders/"
+        FILE_PATH = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/orders/"
         FILENAME = "Orders_" + date + ".csv"
         
         if FILENAME not in os.listdir(FILE_PATH):

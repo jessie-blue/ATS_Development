@@ -14,7 +14,7 @@ from LSTM_Architecture import LSTM
 from pathlib import Path
 from Preprocessing_functions import *
 
-ticker = "AMLP"
+ticker = "USO"
 n_clusters = 3 
 time_period = "240mo"
 
@@ -70,6 +70,8 @@ out_sample = True
 if out_sample is True:
     start_date = df_dates.index.min()
     df = df[df.index <= start_date]
+    #df = df[df.index >= '2014-01-01']
+    
     del DF_NAME, df_dates 
 
 
@@ -287,6 +289,8 @@ if half_kelly_metric is True:
         
         if (date.month == 1 and date.day in (29,30,31)) or (date.month == 7 and date.day in (29,30,31)): 
             half_kelly = kelly_criterion(ticker, date) / 2
+            if half_kelly < 1:
+                half_kelly == 1
             print(date)
         
         for k in range(len(k_names)):
@@ -367,8 +371,9 @@ maxDrawdown, maxDrawdownDuration, startDrawdownDay=calculateMaxDD(cum_ret.values
 #####   SHARPE RATIO
 sharpe_ratio = round(np.sqrt(252) * np.mean(df1['daily_ret']) / np.std(df1['daily_ret']),2)
 
-#####   AVG YEARLY RETURN
+#####   AVG YEARLY RETURN AND STD
 mean_ret = df1['daily_ret'].mean() * 252
+std = df1['daily_ret'].std()*np.sqrt(252)
 
 import numpy as np
 p_change = df1['Close'].pct_change().dropna() #/ df1['Close'].shift(1)
@@ -419,6 +424,7 @@ stats_text += f'Maximum Drawdown: {round(maxDrawdown*100,2)}% \n'
 stats_text += f'Start day Drawdown: {startDrawdownDay} day \n'
 stats_text += f"Drawdown Duration: {int(maxDrawdownDuration)} days \n"
 stats_text += f"Average Yearly Return: {round(mean_ret*100, 2)} % \n"
+stats_text += f"Average Yearly STD: {round(std*100, 2)} % \n"
 fig.text(0.1, 0.03, stats_text, fontsize=12,
          verticalalignment='top', horizontalalignment='left',
          bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
