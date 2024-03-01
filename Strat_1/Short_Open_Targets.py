@@ -9,7 +9,7 @@ import os
 import pandas as pd 
 
 from datetime import datetime 
-from Strat_1.Preprocessing_functions import downlaod_symbol_data
+from Preprocessing_functions import downlaod_symbol_data
 
 
 date = datetime.today().strftime('%Y_%m_%d')

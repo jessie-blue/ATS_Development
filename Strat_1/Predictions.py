@@ -16,12 +16,21 @@ import torch.nn as nn
 
 from datetime import datetime 
 from mpl_toolkits import mplot3d
-from Preprocessing_functions import *;
 from scipy.stats import skew, norm, kurtosis
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
-from LSTM_Architecture import LSTM
 
+# try:
+from Preprocessing_functions import *;
+from LSTM_Architecture import LSTM
+    
+# except ModuleNotFoundError:
+#     from Strat_1.Preprocessing_functions import *;
+#     from Strat_1.LSTM_Architecture import LSTM
+
+# cwd = os.getcwd().replace("\\", "/"  )
+
+# os.chdir(cwd + '/Strat_1')
 
 tickers = ["XLU", "USO", "XLI", "AMLP", "SPY"]
 
@@ -35,6 +44,12 @@ for ticker in tickers:
     df = downlaod_symbol_data(ticker) # period = "1day"
     df = create_momentum_feat(df, ticker)
     df = format_idx_date(df)
+    
+    prediction_date = input("Choose date to predict for: default=today")
+    
+    if prediction_date != "today":
+        #date = "2024-02-29"
+        df = df[df.index < prediction_date]
     
     # =============================================================================
     # LOAD KMEANS MODEL FOR LABELLING 
@@ -137,10 +152,12 @@ for ticker in tickers:
         mean_loss = cluster_stats.loc["mean", f"open_close_{cluster}"]
         
         if mean_profit > mean_loss and mean_loss > 0:
-            actions[cluster] = f"Place a SELL ORDER in {ticker} on the OPEN. Profit target: {mean_profit} pct"
+            # actions[cluster] = f"Place a SELL ORDER in {ticker} on the OPEN. Profit target: {mean_profit} pct"
+            actions[cluster] = f"SELL"
         
         else:
-            actions[cluster] = f"DO NOT TRADE {ticker}"
+            # actions[cluster] = f"DO NOT TRADE {ticker}"
+            actions[cluster] = f"HOLD"
     
     
     print(actions[pred[0].item()])
@@ -151,59 +168,61 @@ for ticker in tickers:
     # Create a file with positions for the day  
     # =============================================================================
     
-    if "SELL" in actions[pred[0].item()]:
-        
-        strats = pd.read_csv("strategies.csv")
-        strats = strats[strats['ticker'] == ticker]
-        
-        kelly = abs(kelly_criterion(ticker, period = "6mo"))
-        
-        strat = 'Short_Open'
-        symbol = ticker
-        last_price = df['Close'][-1]
-        capital = strats['current_capital'].item()
-        half_kelly = kelly / 2
-        if half_kelly < 1:
-            half_kelly = 1 
-        bp_used = capital * half_kelly
-        n_shares = int(bp_used // last_price) 
-        open_position_price = 'at_open'
-        target_price = 1 - cluster_stats.loc["median", f"open_low_{pred[0].item()}"] / 100
-        exp_ret = 1 - target_price
-        stop_price = 'at_close'
-        
-        
-        orders = {
-            "strat" : strat,
-            "ticker" : ticker,
-            "last_close_price" : df['Close'][-1],
-            "capital" : capital, # to be determined by a portfolio optimization engine
-            "half_kelly" : half_kelly,
-            "bp_used" : bp_used,
-            "n_shares" : n_shares ,
-            "open_position": open_position_price,
-            "target_price"  : target_price,
-            "expected_return" : round(exp_ret, 6),
-            "stop_price" : stop_price
-            }
-        
-        orders = pd.DataFrame(orders, columns = orders.keys(), index = [1] )
-        date = datetime.today().strftime('%Y_%m_%d')
-        
-        FILE_PATH = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/orders/"
-        FILENAME = "Orders_" + date + ".csv"
-        
-        if FILENAME not in os.listdir(FILE_PATH):
-            orders.to_csv(FILE_PATH + FILENAME, index = False)
-            continue 
+   # if "SELL" in actions[pred[0].item()]:
+    strats_path = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development"
+    strats = pd.read_csv(strats_path + "/strategies.csv")
     
-        orders_file = pd.read_csv(FILE_PATH + FILENAME)
-        
-        orders_file = pd.concat([orders_file, orders], axis = 0).reset_index(drop = True)
-        
-        orders_file.to_csv(FILE_PATH + FILENAME, index = False)
+    strats = strats[strats['symbol'] == ticker]
+    
+    kelly = abs(kelly_criterion(ticker, period = "6mo"))
+    
+    strat = 'Short_Open'
+    symbol = ticker
+    last_price = df['Close'][-1]
+    capital = strats['current_capital'].item()
+    half_kelly = kelly / 2
+    if half_kelly < 1:
+        half_kelly = 1 
+    bp_used = capital * half_kelly
+    n_shares = int(bp_used // last_price) 
+    open_position_price = 'at_open'
+    target_price = 1 - cluster_stats.loc["median", f"open_low_{pred[0].item()}"] / 100
+    exp_ret = 1 - target_price
+    stop_price = 'at_close'
     
     
+    orders = {
+        "strat" : strat,
+        "ticker" : ticker,
+        "direction" : actions[pred[0].item()],
+        "last_close_price" : df['Close'][-1],
+        "capital" : capital, # to be determined by a portfolio optimization engine
+        "half_kelly" : half_kelly,
+        "bp_used" : bp_used,
+        "n_shares" : n_shares ,
+        "open_position": open_position_price,
+        "target_price"  : target_price,
+        "expected_return" : round(exp_ret, 6),
+        "stop_price" : stop_price
+        }
+    
+    orders = pd.DataFrame(orders, columns = orders.keys(), index = [1] )
+    date = datetime.today().strftime('%Y_%m_%d')
+    
+    FILE_PATH = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/orders/"
+    FILENAME = "Orders_" + date + ".csv"
+    
+    if FILENAME not in os.listdir(FILE_PATH):
+        orders.to_csv(FILE_PATH + FILENAME, index = False)
+        continue 
+
+    orders_file = pd.read_csv(FILE_PATH + FILENAME)
+    
+    orders_file = pd.concat([orders_file, orders], axis = 0).reset_index(drop = True)
+    
+    orders_file.to_csv(FILE_PATH + FILENAME, index = False)
+
+
 
 
 

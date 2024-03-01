@@ -14,7 +14,7 @@ from Strat_1.Preprocessing_functions import downlaod_symbol_data
 date = input("Choose date (today or YYYY_MM_DD, default: today - 1): ")
 
 if date == "today":
-    date = datetime.today().strftime("%Y-%m-%d")
+    date = datetime.today().strftime("%Y_%m_%d")
 
 if len(date) < 3:
     date = (datetime.today() - timedelta(days = 1)).strftime("%Y_%m_%d")
@@ -63,10 +63,12 @@ file['target_price'] = round(file['open_position'] * file['target_price'],2)
 
 #### MERGE 
 file = file.merge(hi_lo, on = 'ticker')
-try:
-    file['pnl'] = file['bp_used']*file['expected_return'] if (file['low'] < file['target_price']).all() else (file['open_position'] - file['stop_price']) * file['n_shares']
-except KeyError:
-    file['pnl'] = file['n_shares']*(file['open_position'] - file['target_price']) if (file['low'] < file['target_price']).all() else (file['open_position'] - file['stop_price']) * file['n_shares']
+
+#### CALCULATE PNL AND EQUITY
+target_reached = file['bp_used']*file['expected_return']
+close_pnl = (file['open_position'] - file['stop_price']) * file['n_shares']
+file['target_reached'] = (file['low'] <= file['target_price'])
+file['pnl'] = np.where(file['target_reached'] == True, target_reached, close_pnl)
 
 file['pnl'] = round(file['pnl'], 2)
 file['eod_capital'] = round(file['capital'] + file['pnl'], 2)

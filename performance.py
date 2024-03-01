@@ -9,22 +9,71 @@ import os
 import numpy as np
 import pandas as pd 
 import datetime as dt 
+import matplotlib.pyplot as plt
 
-date = (dt.datetime.today() - dt.timedelta(days = 1)).strftime("%Y_%m_%d")
+path = 'orders/eod/'
 
-dates = pd.date_range("2024-02-14", "2024-02-27")
+df = pd.DataFrame()
 
-date = dates[0].strftime("%Y_%m_%d")
 
-orders = f"orders/eod/Orders_{date}.csv"
+for filename in os.listdir('orders/eod'):
+    
+    file = pd.read_csv(path + filename)
+    
+    date = filename.replace("Orders_", '').replace(".csv", "").replace("_","-")
+    
+    file['date'] = date
+    
+    file = file[["date","strat", "ticker","n_shares", "pnl", "eod_capital"]]
+    
+    df = pd.concat([df,file], axis = 0)
+    
+        
+def strat_perfomance(ticker, df):
 
-orders = pd.read_csv(orders)
+    df1 = df[df['ticker'] == ticker]
+    strategy = df1.strat.unique().item()
+    
+    cum_sum = df1.pnl.cumsum()
+    
+    plt.figure(figsize = (10,7))
+    plt.plot(df1.date, df1['eod_capital'], color = "b")
+    #plt.plot(df1.date, cum_sum, color = "b")
+    plt.title(f"{strategy}, {ticker}, Equity Curve")
+    plt.xlabel("Date")
+    plt.ylabel("USD")
 
-orders['eod_capital'] = orders['capital'] + orders['pnl']
 
-strats = pd.read_csv("strategies.csv")
-strats['date'] = date.strftime("%Y_%m_%d")
 
-for ticker in orders.ticker:
-    strats.loc[strats['symbol'] == ticker, "current_capital"] = orders.loc[orders["ticker"] == ticker, "eod_capital"]
 
+
+strat_perfomance("XLU", df)
+strat_perfomance("XLI", df)
+strat_perfomance("USO", df)
+strat_perfomance("AMLP", df)
+strat_perfomance("SPY", df)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
