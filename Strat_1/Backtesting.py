@@ -14,7 +14,7 @@ from LSTM_Architecture import LSTM
 from pathlib import Path
 from Preprocessing_functions import *
 
-ticker = "USO"
+ticker = "XLU"
 n_clusters = 3 
 time_period = "240mo"
 
@@ -65,12 +65,12 @@ df = downlaod_symbol_data(ticker, period = time_period)
 df = format_idx_date(df)
 
 # REMOVE DATA SNOOPING 
-out_sample = True
+out_sample = False
 
 if out_sample is True:
     start_date = df_dates.index.min()
     df = df[df.index <= start_date]
-    #df = df[df.index >= '2014-01-01']
+    #df = df[df.index >= '2010-01-01']
     
     del DF_NAME, df_dates 
 
@@ -283,16 +283,25 @@ if half_kelly_metric is True:
     start_capital = 1e4
     no_trade_k = [i for i in range(0,3) if i not in k_names][0]
     df = pd.DataFrame()
-    half_kelly = kelly_criterion(ticker, df1.index.min()) / 2 
+    #half_kelly = kelly_criterion(ticker, df1.index.min()) / 2 
     
     for date, row in df1.iterrows():
         
-        if (date.month == 1 and date.day in (29,30,31)) or (date.month == 7 and date.day in (29,30,31)): 
-            half_kelly = kelly_criterion(ticker, date) / 2
-            if half_kelly < 1:
-                half_kelly == 1
-            print(date)
+        half_kelly = kelly_criterion(ticker, date) / 2
+        if half_kelly < 1:
+            print("Convert half kelly to 1")
+            half_kelly = 1
         
+        # biyearly_hk = False
+        
+        # if biyearly_hk:
+        
+        #     if (date.month == 1 and date.day in (29,30,31)) or (date.month == 7 and date.day in (29,30,31)): 
+        #         half_kelly = kelly_criterion(ticker, date) / 2
+        #         if half_kelly < 1:
+        #             half_kelly = 1
+        #         print(date)
+            
         for k in range(len(k_names)):
             
             row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
@@ -431,7 +440,7 @@ fig.text(0.1, 0.03, stats_text, fontsize=12,
 
 save = False
 if save is True:
-    plt.savefig(f"Short_Open_Backtests/Backtest_{ticker} with Half Kelly Allocation", bbox_inches='tight')
+    plt.savefig(f"Short_Open_Backtests/Backtest_{ticker} with Half Kelly Allocation can be below 1", bbox_inches='tight')
 
 plt.show()
 

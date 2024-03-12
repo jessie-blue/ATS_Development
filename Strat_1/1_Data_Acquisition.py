@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path 
 from Preprocessing_functions import *
 
-ticker = "XLP"
+ticker = "AAPL"
 n_clusters = 3
 
 df = downlaod_symbol_data(ticker)

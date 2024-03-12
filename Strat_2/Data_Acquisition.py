@@ -1,49 +1,57 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jan 17 21:24:36 2024
+Created on Thu Mar  7 14:20:27 2024
 
 @author: ktsar
 """
-import os
+
+import os 
+from datetime import datetime
+directory = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/Strat_2"
+os.chdir(directory)
 import pandas as pd 
 import torch
 import torch.nn as nn
 import torch.optim 
 
-from datetime import datetime 
 from pathlib import Path
-from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_data, accuracy_fn, format_idx_date
+from ALGO_KT1 import Preprocessing_functions as pf 
+from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
-from LSTM_Architecture import LSTM, LSTM_V3, TimeSeriesDataset
-
-ticker = "AAPL"
-
-# LOAD DF FOR MODEL BUILDING 
-FILE_PATH = f"Data/{ticker}/df/"
-print("DataFrames for model building: ", os.listdir(FILE_PATH))
-idx = 0 if len(os.listdir(FILE_PATH)) else int(input("Select file index: "))
-DF_NAME = os.listdir(FILE_PATH)[idx] 
-FILE_PATH_NAME = FILE_PATH + DF_NAME
-
-df_model = pd.read_parquet(FILE_PATH_NAME)
-df_model = df_model.reset_index()
-df_model['Date'] = pd.to_datetime(df_model['Date']).dt.date
-df_model = df_model.set_index("Date")
 
 
-end_date = df_model.index.max()
+ticker = "SPY"
+
+df = pf.downlaod_symbol_data(ticker)
+df = pf.create_momentum_feat(df, ticker)
+df = pf.technical_indicators(df).dropna()
+df = pf.format_idx_date(df)
+
+df['labels'] = (df['open_close'] >= 0).astype(int) 
+df['open_high'] = df['open_high'] * (-1)
+
+green_day_stats = pf.cluster_stats(df, 1, "open_close", "open_high", "open_low")
+red_day_stats = pf.cluster_stats(df, 0, "open_close", "open_high", "open_low")
+
+cols = df.columns[4:]
+
+df1 = df[cols].dropna().drop(columns = ["Capital Gains", "Stock Splits"])
+
+end_date = df1.index.max()
 seq_length =  1
-test_size_pct = 0.15
+test_size_pct = 0.20
 
-df_model = df_model.sort_index(ascending = False)
+df1 = df1.sort_index(ascending = False)
 
-model_feat = pd.DataFrame(list(df_model.columns) + ["last_day"])
 
-df_model = min_max_scaling(df_model)
+### make a directory of the symbol if not there 
+df1.to_parquet(f"data/{ticker}/DF_{end_date.strftime('%Y_%m_%d')}.parquet")
 
-df_model['last_day'] = (df_model.index == end_date).astype(int)
+model_feat = pd.DataFrame(list(df1.columns))
 
-X, y  = create_multivariate_rnn_data(df_model, seq_length)
+df1 = pf.min_max_scaling(df1)
+
+X, y  = pf.create_multivariate_rnn_data(df1, seq_length)
 
 # Train, Test Split 
 test_size = int(X.shape[0] * test_size_pct) 
@@ -68,14 +76,13 @@ num_layers = 2
 learning_rate = 0.01
 momentum = 0.9
 epochs =  int(2e4)
-num_classes = 3
+num_classes = 2
 batch_size = 32
 hidden_size1 = 32
 hidden_size2 = 64
 
-
-train_dataset = TimeSeriesDataset(X_train_tensor, y_train_tensor)
-test_dataset = TimeSeriesDataset(X_test_tensor, y_test_tensor)
+train_dataset = ls.TimeSeriesDataset(X_train_tensor, y_train_tensor)
+test_dataset = ls.TimeSeriesDataset(X_test_tensor, y_test_tensor)
 
 train_loader = DataLoader(train_dataset, 
                           batch_size = batch_size,
@@ -93,18 +100,19 @@ for _, batch in enumerate(train_loader):
     print(x_batch.shape, y_batch.shape)
     break 
 
+
 #INSTANTIATE MODEL
 base_lstm = True
 
 if base_lstm is True:
-    model = LSTM(input_size=input_feat, 
+    model = ls.LSTM(input_size=input_feat, 
                   output_size=num_classes, 
                   hidden_size=hidden_size, 
                   num_layers=num_layers,
                   device=device).to(device)
 
 else:
-    model = LSTM_V3(input_size=input_feat, 
+    model = ls.LSTM_V3(input_size=input_feat, 
                   output_size=num_classes, 
                   hidden_size1=hidden_size1, 
                   hidden_size2=hidden_size2,
@@ -142,7 +150,7 @@ for epoch in range(epochs):
         optimizer.step()
         
         
-        batch_accuracy = accuracy_fn(y_true = y_batch[:,0], y_pred = pred) 
+        batch_accuracy = pf.accuracy_fn(y_true = y_batch[:,0], y_pred = pred) 
         acc += batch_accuracy
         
         #print(f"Epoch: {epoch}, Batch: {batch_index}, Batch Accuracy: {batch_accuracy:.2f}")
@@ -170,7 +178,7 @@ for epoch in range(epochs):
             test_loss += loss_fn(test_pred, y[:,0])
             
             # 3 Calculate accuracy
-            test_acc += accuracy_fn(y_true = y[:,0], 
+            test_acc += pf.accuracy_fn(y_true = y[:,0], 
                                     y_pred = test_pred.argmax(dim = 1)) # may need to add argmax(dim = 1) in here
             
         test_loss /= len(test_loader)
@@ -188,13 +196,13 @@ for epoch in range(epochs):
         MODEL_PATH.mkdir(parents = True, exist_ok = True)
         
         # CREATE MODEL SAVE PATH
-        MODEL_NAME = f"LSTM_Class_{DF_NAME.replace('.parquet','')}_Epoch_{epoch}_TestAcc_{test_acc:.2f}_TrainAcc_{avg_acc:.2F}_{DATE}"
+        MODEL_NAME = f"LSTM_Class_Epoch_{epoch}_TestAcc_{test_acc:.2f}_TrainAcc_{avg_acc:.2F}_{DATE}"
         MODEL_SAVE_PATH = MODEL_PATH / MODEL_NAME
         
         # SAVE THE INPUT FEATURES OF THE MODEL
         FEAT_PATH = Path(f"model_features/{ticker}")
         FEAT_PATH.mkdir(parents= True, exist_ok= True)
-        FEAT_NAME = f"LSTM_{DF_NAME.replace('.parquet','')}_NFEAT{model_feat.shape[0]}.csv"
+        FEAT_NAME = f"LSTM_{DATE}_NFEAT{model_feat.shape[0]}.csv"
         if FEAT_NAME not in os.listdir(FEAT_PATH):
             FEAT_SAVE_PATH = FEAT_PATH / FEAT_NAME
             model_feat.to_csv(FEAT_SAVE_PATH, index = False)
@@ -209,6 +217,20 @@ for epoch in range(epochs):
     if avg_loss == 100:
         break
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

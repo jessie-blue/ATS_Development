@@ -14,27 +14,31 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 
-from datetime import datetime 
+from datetime import datetime, timedelta 
 from mpl_toolkits import mplot3d
 from scipy.stats import skew, norm, kurtosis
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 
-# try:
-from Preprocessing_functions import *;
-from LSTM_Architecture import LSTM
+try:
+    from Preprocessing_functions import *;
+    from LSTM_Architecture import LSTM
     
-# except ModuleNotFoundError:
-#     from Strat_1.Preprocessing_functions import *;
-#     from Strat_1.LSTM_Architecture import LSTM
+except ModuleNotFoundError:
+    from Strat_1.Preprocessing_functions import *;
+    from Strat_1.LSTM_Architecture import LSTM
 
-# cwd = os.getcwd().replace("\\", "/"  )
-
-# os.chdir(cwd + '/Strat_1')
+cwd = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/Strat_1".replace("\\", "/"  )
+os.chdir(cwd)
 
 tickers = ["XLU", "USO", "XLI", "AMLP", "SPY"]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+prediction_date = input("Choose date to predict for: today or YYYY-MM-DD: ")
+
+# prediction_date = "2024-02-13"
+# ticker = "XLU"
 
 for ticker in tickers: 
     
@@ -44,8 +48,6 @@ for ticker in tickers:
     df = downlaod_symbol_data(ticker) # period = "1day"
     df = create_momentum_feat(df, ticker)
     df = format_idx_date(df)
-    
-    prediction_date = input("Choose date to predict for: default=today")
     
     if prediction_date != "today":
         #date = "2024-02-29"
@@ -178,12 +180,12 @@ for ticker in tickers:
     
     strat = 'Short_Open'
     symbol = ticker
-    last_price = df['Close'][-1]
+    last_price = df['Close'].iloc[-1]
     capital = strats['current_capital'].item()
     half_kelly = kelly / 2
     if half_kelly < 1:
         half_kelly = 1 
-    bp_used = capital * half_kelly
+    bp_used = round(capital * half_kelly,2)
     n_shares = int(bp_used // last_price) 
     open_position_price = 'at_open'
     target_price = 1 - cluster_stats.loc["median", f"open_low_{pred[0].item()}"] / 100
@@ -195,7 +197,7 @@ for ticker in tickers:
         "strat" : strat,
         "ticker" : ticker,
         "direction" : actions[pred[0].item()],
-        "last_close_price" : df['Close'][-1],
+        "last_close_price" : df['Close'].iloc[-1],
         "capital" : capital, # to be determined by a portfolio optimization engine
         "half_kelly" : half_kelly,
         "bp_used" : bp_used,
@@ -207,10 +209,14 @@ for ticker in tickers:
         }
     
     orders = pd.DataFrame(orders, columns = orders.keys(), index = [1] )
-    date = datetime.today().strftime('%Y_%m_%d')
+    
+    if prediction_date == "today":
+        date = datetime.today().strftime('%Y_%m_%d')
+    else:
+        date = (df.index.max() + timedelta(days = 1)).strftime('%Y_%m_%d')
     
     FILE_PATH = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/orders/"
-    FILENAME = "Orders_" + date + ".csv"
+    FILENAME = "Orders_" + date.replace("-", "_") + ".csv"
     
     if FILENAME not in os.listdir(FILE_PATH):
         orders.to_csv(FILE_PATH + FILENAME, index = False)

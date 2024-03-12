@@ -1,0 +1,13 @@
+CHANGELOG.txt
+LICENCE.txt
+LSTM_Architecture.py
+MANIFEST.in
+Preprocessing_functions.py
+README.txt
+__init__.py
+calculateMaxDD.py
+setup.py
+ALGO_KT1.egg-info/PKG-INFO
+ALGO_KT1.egg-info/SOURCES.txt
+ALGO_KT1.egg-info/dependency_links.txt
+ALGO_KT1.egg-info/top_level.txt

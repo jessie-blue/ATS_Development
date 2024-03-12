@@ -1,0 +1,26 @@
+Metadata-Version: 2.1
+Name: ALGO-KT1
+Version: 0.0.1
+Summary: A very basic finance calcs
+Home-page: 
+Author: Kiril Tsarvenkov
+Author-email: ktsarvenkov@gmail.com
+License: MIT
+Keywords: ALGO
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Education
+Classifier: Operating System :: Microsoft :: Windows :: Windows 11
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+License-File: LICENCE.txt
+
+This is a list of some very basic functions for finance.
+
+
+Change Log
+==========
+
+0.0.1 (07/03/2024)
+
+------------------
+- First Release

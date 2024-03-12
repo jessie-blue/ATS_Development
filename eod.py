@@ -6,6 +6,9 @@ Created on Tue Feb 27 17:20:46 2024
 """
 
 import os 
+cwd = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development".replace("\\", "/"  )
+os.chdir(cwd)
+
 import numpy as np
 import pandas as pd 
 from datetime import datetime , timedelta 
@@ -72,6 +75,10 @@ file['pnl'] = np.where(file['target_reached'] == True, target_reached, close_pnl
 
 file['pnl'] = round(file['pnl'], 2)
 file['eod_capital'] = round(file['capital'] + file['pnl'], 2)
+
+## FIX THE EOD_CAPITAL 
+file["eod_capital"] = np.where(file['direction'] == "HOLD", file['capital'], file['eod_capital'])
+file["pnl"] = np.where(file['direction'] == "HOLD", 0 , file['pnl'])
 
 strats = pd.read_csv("strategies.csv")
 for ticker in file.ticker:
