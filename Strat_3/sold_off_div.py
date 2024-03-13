@@ -16,6 +16,7 @@ import time
 import re 
 
 from ALGO_KT1 import Preprocessing_functions as pf 
+from pathlib import Path
 
 start_time = time.time()
 
@@ -28,22 +29,20 @@ for idx, row in prefs.iterrows():
     
     print(row["Symbol"].split('\n')[0].replace('-', '-P'))
     ticker = row["Symbol"].split('\n')[0].replace('-', '-P')
-    
+
     if ticker == "Symbol":
         continue
-    
+
     call_date = row['Call Date'].split('\n')[0]
     mat_date = row['Call Date'].split('\n')[1]
     cpn_rate = row['Cpn Rate\nAnn Amt'].split("\n")[0].strip()
     ann_rate = row['Cpn Rate\nAnn Amt'].split("\n")[1].strip()
-    #ticker = "MFA-PB"
 
     df = pf.downlaod_symbol_data(ticker, period = "6mo")
     
     if df.empty:
         continue
 
-    
     df['ex_date'] = np.where(df['Dividends'] != 0, True, False)
     df['label'] = np.where(df['Close'] > df['Close'].shift(1), "green", "red")
     
@@ -56,15 +55,10 @@ for idx, row in prefs.iterrows():
         print(ticker, ': No useful data for this symbol')
         continue
     
-    
     for day in days:
         df[f'post_div_{day}'] = np.where(df[f'post_div_{day}'] == -100, 0 , df[f'post_div_{day}'])
     
     symbol = yf.Ticker(ticker)
-    
-    # next_div = datetime.datetime.utcfromtimestamp(symbol.info['exDividendDate']).strftime("%Y-%m-%d")
-    # next_div = next_div if next_div != last_div else "Not available yet"
-    # print("Next Dividend Date: ", next_div)
     
     today = df.tail(1)
     
@@ -78,19 +72,24 @@ for idx, row in prefs.iterrows():
             #date_obj = datetime.datetime.utcfromtimestamp(msft.history_metadata['firstTradeDate']).strftime("%Y-%m-%d")
             print("Last Dividend Date: ", last_div)
             
+            DATE = datetime.datetime.today().strftime("%Y_%m_%d")
+            MODEL_PATH = Path(f"Orders/{DATE}/")
+            MODEL_PATH.mkdir(parents = True, exist_ok = True)
+            
             mpf.plot(df, type='candle', 
                       style='charles', 
                       volume=True,
                       figsize = (20,10),
-                      title = f"-- \n {ticker} \n Annual Rate: {ann_rate},Cpn Rate: {cpn_rate}, Call Date: {call_date}",
-                      xlabel = f"Date   (Last dividend date: {last_div})",
+                      title = f"-- \n {ticker}\n Annual Rate: {ann_rate}, Cpn Rate: {cpn_rate}, Call Date: {call_date}",
+                      xlabel = f"Date: {DATE.replace('_', '-')}   (Last dividend date: {last_div})",
                       ylabel = "Price USD",
                       addplot = mpf.make_addplot(df['Dividends']),
-                      savefig=f'Orders/{ticker}.png'
+                      savefig= MODEL_PATH / f'{ticker}.png'
                       )
         # for date in dividend_dates:
             # mpf.plot([], [], marker='o', markersize=10, color='green', label='Dividend', linestyle='None', linewidth=0)
-        
+    # if ticker == "MITT-PC":
+    #     break
 #symbol.dividends    
 end_time = time.time()
 

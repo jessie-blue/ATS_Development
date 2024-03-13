@@ -427,29 +427,27 @@ def kelly_criterion(ticker,
                     period = "240mo"):
     
     from dateutil.relativedelta import relativedelta
-    
-    data = yf.Ticker(ticker)
-    df = data.history(period=period).round(2)
-    df = format_idx_date(df)
-    
+    import datetime    
+    ticker = 'AMLP'
+    df = pd.read_csv(f'strat_returns/{ticker}.csv', header = 0, names = ['date', 'daily_ret'])
+    df.date = pd.to_datetime(df.date)
+    date_to = pd.to_datetime(date_to)    
     date_from = pd.to_datetime(date_to) - relativedelta(months=6)
     
-    df = df[df.index <= pd.to_datetime(date_to)]
-    df = df[df.index >= pd.to_datetime(date_from)]
-    
+    df = df[df.date <= date_to]
+    df = df[df.date >= pd.to_datetime(date_from)]
 
-    df['ret'] = round(df['Close'].pct_change(), 6)
-    mean_ret = df["ret"].mean()
-    std = df["ret"].std() 
+    mean_ret = df["daily_ret"].mean()
+    std = df["daily_ret"].std() 
     
     kelly = mean_ret / std**2
     
     if abs(kelly) > 8:
         kelly = 8
         
-    if abs(kelly) < 1 :
-        kelly = 1
-    
+    # if abs(kelly) < 1 :
+    #     kelly = 1
+    df = df.set_index('date')
     print(f"Kelly Calculation window: From: {df.index.min()} To: {df.index.max()}")
     return round(abs(kelly) , 2)
     
@@ -459,7 +457,7 @@ def kelly_criterion(ticker,
 
 
 
-#d , k  = kelly_criterion("XLU")
+# k  = kelly_criterion("SPY")
 
 
 

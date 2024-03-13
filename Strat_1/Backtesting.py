@@ -14,9 +14,9 @@ from LSTM_Architecture import LSTM
 from pathlib import Path
 from Preprocessing_functions import *
 
-ticker = "XLU"
+ticker = "AMLP"
 n_clusters = 3 
-time_period = "240mo"
+time_period = "180mo"
 
 ### LOAD KMEANS MODEL ###
 KMEANS_PATH = f"kmeans_models/{ticker}/"
@@ -149,7 +149,9 @@ del pred, output, predictions
 cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
 ACC = (df1['labels'] == df1['predictions']).sum() / df1.shape[1]
 
-#### BACKTESTING ####
+# =============================================================================
+# #### BACKTESTING ####
+# =============================================================================
 import numpy as np
 
 df1 = df1.sort_index()
@@ -175,105 +177,6 @@ for n in range(0,3):
         if n not in k_names:
             k_names.append(n)
     
-###### N SHARES CODE ############
-# K1 RES 
-static_shares = False
-
-if static_shares is True:
-    shares = 100
-    
-    df1['target_1'] = round((1 - cluster_stats.loc["median" , "open_low_0"]/100) * df1['Open'], 2) 
-    df1['target_2'] = round((1 - cluster_stats.loc["median" , "open_low_1"]/100) * df1['Open'], 2) 
-    
-    df1['k1_true'] = (df1['target_1'] >= df1['Low']) 
-    df1['k1_profit'] = (df1['k1_true'] * (df1['Open'] - df1['target_1']))* shares
-    df1['k1_loss'] = (df1['Open'] - df1['Close']) * shares
-    df1['k1_pnl'] = np.where(df1['k1_true'] == True, df1['k1_profit'], df1['k1_loss'])
-    del df1['k1_profit'], df1['k1_loss']
-    
-    # K2 RES
-    df1['k2_true'] = df1['target_2'] >= df1['Low'] 
-    df1['k2_profit'] = (df1['k2_true'] * (df1['Open'] - df1['target_2']))* shares
-    df1['k2_loss'] = (df1['Open'] - df1['Close']) * shares
-    df1['k2_pnl'] = np.where(df1['k2_true'] == True, df1['k2_profit'], df1['k2_loss'])
-    del df1['k2_profit'], df1['k2_loss']
-    
-    # Combining results 
-    df1['k1_k2'] = np.where(df1['predictions'] == 0, df1['k1_pnl'], df1['k2_pnl'])
-    df1['k0_k1_k2'] = np.where(df1['predictions'] == 2, 0, df1['k1_k2'] )
-    df1['net_pnl'] = np.where(df1['k0_k1_k2'] != 0, df1['k0_k1_k2'] - tc, 0)
-    df1['pnl_cumsum'] = df1['net_pnl'].cumsum()
-
-################### DYNAMIC SHARES ######################################
-
-dynamic_shares_raw = False 
-
-if dynamic_shares_raw is True:
-
-    df1['shares'] = capital // df1['Close']
-    
-    # K1 RES 
-    df1['target_1'] = round((1 - cluster_stats.loc["median" , "open_low_0"]/100) * df1['Open'], 2) 
-    df1['target_2'] = round((1 - cluster_stats.loc["median" , "open_low_1"]/100) * df1['Open'], 2) 
-    
-    df1['k1_true'] = (df1['target_1'] >= df1['Low']) 
-    df1['k1_profit'] = (df1['k1_true'] * (df1['Open'] - df1['target_1']))* df1['shares']
-    df1['k1_loss'] = (df1['Open'] - df1['Close']) * df1['shares']
-    df1['k1_pnl'] = np.where(df1['k1_true'] == True, df1['k1_profit'], df1['k1_loss'])
-    del df1['k1_profit'], df1['k1_loss']
-    
-    # K2 RES
-    df1['k2_true'] = df1['target_2'] >= df1['Low'] 
-    df1['k2_profit'] = (df1['k2_true'] * (df1['Open'] - df1['target_2']))* df1['shares']
-    df1['k2_loss'] = (df1['Open'] - df1['Close']) * df1['shares']
-    df1['k2_pnl'] = np.where(df1['k2_true'] == True, df1['k2_profit'], df1['k2_loss'])
-    del df1['k2_profit'], df1['k2_loss']
-    
-    # Combining results 
-    df1['k1_k2'] = np.where(df1['predictions'] == 0, df1['k1_pnl'], df1['k2_pnl'])
-    df1['k0_k1_k2'] = np.where(df1['predictions'] == 2, 0, df1['k1_k2'] )
-    df1['net_pnl'] = np.where(df1['k0_k1_k2'] != 0, df1['k0_k1_k2'] - tc, 0)
-    df1['pnl_cumsum'] = df1['net_pnl'].cumsum()
-    
-    df1['daily_ret'] = ((df1['net_pnl'] + capital) - capital)  / capital # for sharpe ratio calc
-
-
-################### DYNAMIC SHARES EXPERIMENTATION ######################################
-
-experimentation = False
-
-if experimentation is True:
-    df3 = df1.copy()
-    
-    df3['shares'] = capital // df3['Close']
-    
-    # K1 RES 
-    df3['target_1'] = round((1 - cluster_stats.loc["median" , "open_low_0"]/100) * df3['Open'], 2) 
-    df3['target_2'] = round((1 - cluster_stats.loc["median" , "open_low_1"]/100) * df3['Open'], 2) 
-    
-    df3['k1_true'] = (df3['target_1'] >= df3['Low']) 
-    df3['k1_profit'] = (df3['k1_true'] * (df3['Open'] - df3['target_1']))* df3['shares']
-    df3['k1_loss'] = (df3['Open'] - df3['Close']) * df3['shares']
-    df3['k1_pnl'] = np.where(df3['k1_true'] == True, df3['k1_profit'], df3['k1_loss'])
-    #del df3['k1_profit'], df3['k1_loss']
-    
-    # K2 RES
-    df3['k2_true'] = df3['target_2'] >= df3['Low'] 
-    df3['k2_profit'] = (df3['k2_true'] * (df3['Open'] - df3['target_2']))* df3['shares']
-    df3['k2_loss'] = (df3['Open'] - df3['Close']) * df3['shares']
-    df3['k2_pnl'] = np.where(df3['k2_true'] == True, df3['k2_profit'], df3['k2_loss'])
-    #del df3['k2_profit'], df3['k2_loss']
-    
-    # Combining results 
-    df3['k1_k2'] = np.where(df3['predictions'] == 0, df3['k1_pnl'], df3['k2_pnl'])
-    df3['k0_k1_k2'] = np.where(df3['predictions'] == 2, 0, df3['k1_k2'] )
-    df3['net_pnl'] = np.where(df3['k0_k1_k2'] != 0, df3['k0_k1_k2'] - tc, 0)
-    df3['pnl_cumsum'] = df3['net_pnl'].cumsum()
-    
-    df3['daily_ret'] = ((df3['net_pnl'] + capital) - capital)  / capital # for sharpe ratio calc
-    
-    plt.plot(df3['net_pnl'])
-
 ################### ADDING KELLY ######################################
 
 half_kelly_metric = True
@@ -288,9 +191,10 @@ if half_kelly_metric is True:
     for date, row in df1.iterrows():
         
         half_kelly = kelly_criterion(ticker, date) / 2
-        if half_kelly < 1:
-            print("Convert half kelly to 1")
-            half_kelly = 1
+        #half_kelly =  1
+        # if half_kelly < 1:
+        #     print("Convert half kelly to 1")
+        #     half_kelly = 1
         
         # biyearly_hk = False
         
@@ -342,34 +246,8 @@ if half_kelly_metric is True:
     df1['pnl_cumsum'] = df1['net_pnl'].cumsum()
 
 # =============================================================================
-# ## DEFAULT CALCULATION WITH FIXED CAPITAL (NO KELLY CRITERION) 
+# END OF ADDING KELLY
 # =============================================================================
-
-if half_kelly_metric is False:
-
-    for k in range(len(k_names)):
-        
-        df1['shares'] = capital // df1['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
-        df1[f'target_{k_names[k]}'] = round((1 - cluster_stats.loc["median" , f"open_low_{k_names[k]}"]/100) * df1['Open'], 2) 
-        
-        df1[f'k{k_names[k]}_true'] = (df1[f'target_{k_names[k]}'] >= df1['Low']) 
-        df1[f'k{k_names[k]}_profit'] = (df1[f'k{k_names[k]}_true'] * (df1['Open'] - df1[f'target_{k_names[k]}']))* df1['shares']
-        df1[f'k{k_names[k]}_loss'] = round(((df1['Open'] - df1['Close']) * df1['shares']),4)
-        df1[f'k{k_names[k]}_pnl'] = np.where(df1[f'k{k_names[k]}_true'] == True, df1[f'k{k_names[k]}_profit'], df1[f'k{k_names[k]}_loss'])
-        del df1[f'k{k_names[k]}_profit'], df1[f'k{k_names[k]}_loss']
-    
-    no_trade_k = [i for i in range(0,3) if i not in k_names][0] # predicted cluster for which we do not trade 
-    
-    df1[f'k{k_names[0]}_k{k_names[1]}'] = np.where(df1['predictions'] == 0, df1[f'k{k_names[0]}_pnl'], df1[f'k{k_names[1]}_pnl'])
-    df1['k0_k1_k2'] = np.where(df1['predictions'] == no_trade_k, 0, df1[f'k{k_names[0]}_k{k_names[1]}'] )
-    df1['net_pnl'] = np.where(df1['k0_k1_k2'] != 0, df1['k0_k1_k2'] - tc, 0)
-    df1['pnl_cumsum'] = df1['net_pnl'].cumsum()
-    df1['daily_ret'] = ((df1['net_pnl'] + capital) - capital)  / capital
-###########################################################################################
-
-## datetime slicing 
-#df1[pd.to_datetime(df1.index) <= "2007-03-30"]
-
 
 #####   MAX DRAWDOWN
 from calculateMaxDD import calculateMaxDD
@@ -387,7 +265,6 @@ std = df1['daily_ret'].std()*np.sqrt(252)
 import numpy as np
 p_change = df1['Close'].pct_change().dropna() #/ df1['Close'].shift(1)
 corr = np.corrcoef(p_change, df1['Close'][1:])
-
 
 print(f"Correlation Price / Return: " , round(corr[1][0], 2))
 print(f'Sharpe Ratio: {sharpe_ratio}')
@@ -426,7 +303,6 @@ ax2.spines['right'].set_visible(False)
 ax2.spines['bottom'].set_visible(False)
 ax2.spines['left'].set_visible(False)
 
-
 # Add text box
 stats_text = f'Sharpe Ratio: {sharpe_ratio} :\n'
 stats_text += f'Maximum Drawdown: {round(maxDrawdown*100,2)}% \n'
@@ -440,9 +316,18 @@ fig.text(0.1, 0.03, stats_text, fontsize=12,
 
 save = False
 if save is True:
-    plt.savefig(f"Short_Open_Backtests/Backtest_{ticker} with Half Kelly Allocation can be below 1", bbox_inches='tight')
+    plt.savefig(f"Short_Open_Backtests/Backtest_{ticker}_hk{half_kelly}", bbox_inches='tight')
 
 plt.show()
+
+# =============================================================================
+# SAVE STRAT RETURNS TO AID CALCULATING HALF KELLY FOR LIVE TRADING
+# =============================================================================
+
+if out_sample is False:
+    if time_period == "12mo":
+        rets = df1['daily_ret'].to_frame()
+        rets.to_csv(f'strat_returns/{ticker}.csv')
 
 
 

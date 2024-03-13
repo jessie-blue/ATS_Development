@@ -11,7 +11,7 @@ os.chdir(cwd)
 
 import numpy as np
 import pandas as pd 
-from datetime import datetime , timedelta 
+from datetime import datetime , timedelta, date 
 from Strat_1.Preprocessing_functions import downlaod_symbol_data
 
 date = input("Choose date (today or YYYY_MM_DD, default: today - 1): ")
@@ -87,3 +87,26 @@ for ticker in file.ticker:
 FILENAME = f"orders/eod/Orders_{date}.csv"
 file.to_csv(FILENAME, index = False)
 strats.to_csv('strategies.csv', index = False)
+
+for idx, row in file.iterrows():
+    
+    ticker = row['ticker']
+    
+    print(ticker)
+
+    df_ret = pd.read_csv(f'Strat_1/strat_returns/{ticker}.csv', header = 0, names = ['date', 'ret'])
+    
+    data = file[file['ticker'] == ticker]
+    
+    data['ret'] = data['eod_capital'] / data['capital'] - 1 
+    data['date'] = [datetime.today().strftime("%Y-%m-%d")]
+    data = data[['date', 'ret']]
+    
+    df_ret = pd.concat([df_ret, data], axis = 0)
+    
+    df_ret.to_csv(f'Strat_1/strat_returns/{ticker}.csv', index = False)
+
+
+
+
+
