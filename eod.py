@@ -14,20 +14,13 @@ import pandas as pd
 from datetime import datetime , timedelta, date 
 from Strat_1.Preprocessing_functions import downlaod_symbol_data
 
-date = input("Choose date (today or YYYY_MM_DD, default: today - 1): ")
+date = input("Choose date (today, yesterday or YYYY_MM_DD): ")
 
 if date == "today":
     date = datetime.today().strftime("%Y_%m_%d")
 
-if len(date) < 3:
+if date == "yesterday":
     date = (datetime.today() - timedelta(days = 1)).strftime("%Y_%m_%d")
-
-
-# dates = pd.date_range('2024-02-14', '2024-02-27')
-
-# for date in dates:
-    
-#     date = date.strftime("%Y_%m_%d")
 
 
 FILENAME = f"orders/Orders_{date}.csv"
@@ -88,6 +81,8 @@ FILENAME = f"orders/eod/Orders_{date}.csv"
 file.to_csv(FILENAME, index = False)
 strats.to_csv('strategies.csv', index = False)
 
+file['ret'] = file['eod_capital'] / file['capital'] - 1 
+
 for idx, row in file.iterrows():
     
     ticker = row['ticker']
@@ -98,8 +93,8 @@ for idx, row in file.iterrows():
     
     data = file[file['ticker'] == ticker]
     
-    data['ret'] = data['eod_capital'] / data['capital'] - 1 
-    data['date'] = [datetime.today().strftime("%Y-%m-%d")]
+    # data['ret'] = data['eod_capital'].max() / data['capital'].max() - 1 
+    data['date'] = datetime.today().strftime("%Y-%m-%d")
     data = data[['date', 'ret']]
     
     df_ret = pd.concat([df_ret, data], axis = 0)

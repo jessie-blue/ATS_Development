@@ -16,7 +16,7 @@ from Preprocessing_functions import *
 
 ticker = "AMLP"
 n_clusters = 3 
-time_period = "180mo"
+time_period = "120mo"
 
 ### LOAD KMEANS MODEL ###
 KMEANS_PATH = f"kmeans_models/{ticker}/"

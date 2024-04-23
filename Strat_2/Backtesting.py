@@ -12,6 +12,7 @@ import os
 from datetime import datetime
 directory = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/Strat_2"
 os.chdir(directory)
+import numpy as np
 import pandas as pd 
 import torch
 import torch.nn as nn
@@ -48,6 +49,14 @@ idx = 0 if len(os.listdir(MODEL_PATH)) < 2 else int(input("Select file index: ")
 MODEL_NAME = os.listdir(MODEL_PATH)[idx]
 print("Chosen LSTM, MODEL file: ", MODEL_NAME)
 
+# LOAD BAR STATS 
+STATS_PATH = f"stats/{ticker}/"
+idx = 0 if len(os.listdir(STATS_PATH)) < 2 else int(input("Select file index: "))
+STATS_NAME = os.listdir(STATS_PATH)[idx]
+print("Chosen STATS file: ", STATS_NAME)
+stats = pd.read_csv(STATS_PATH + STATS_NAME, index_col = ['Unnamed: 0'])
+
+del FEAT_PATH, idx, DF_PATH, FEAT_NAME, directory
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -138,10 +147,14 @@ del pred, output, predictions
 # cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
 ACC = (df1['labels'] == df1['predictions']).sum() / df1.shape[1]
 
+######## INFER HIGH OR LOW WAS FIRST ######
 
+df1['low_first'] = df1['Close'] >= df1['Open']
+df1['low_last'] = df1['Close'] <= df1['Open'] 
+
+df1['labels'] = (df1['Close'] > df1['Open']).astype(int)
 
 ######## BACKTESTING #########
-import numpy as np
 
 df1 = df1.sort_index()
 df1_cols = [i for i in df1.columns if "mom" not in i]
@@ -174,6 +187,32 @@ for date, row in df1.iterrows():
     df = pd.concat([df, row], axis =1)
     # break 
    # df['date'] = date
+
+
+
+for date, row in df1.iterrows():
+    
+    print(date, row)
+    half_kelly = pf.kelly_criterion(ticker, date, period = "360mo") / 2 
+    
+    row['half_kelly'] = half_kelly
+    row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
+    # row['return'] = row['Close'] / row['Open'] - 1 
+    
+    row['pnl_green'] = start_capital * stats.loc['median', 'open_high_green'] / 100 if row['predictions'] == 0 and row['low_last'] else start_capital * stats.loc['median', 'open_low_green']  
+    row['pnl_0'] = start_capital * stats.loc['median', 'open_high_red'] / 100 if row['predictions'] == 1 and row['low_last'] else start_capital * stats.loc['median', 'open_low_red']  
+    
+    row['pnl'] = np.where(row['predictions'] == 1, round(start_capital* half_kelly * row['return'], 2), 0).astype("float64")
+    row['eod_capital'] = start_capital + row['pnl'].item()
+    
+    start_capital = row['eod_capital']
+    
+    row = row.to_frame()
+
+    df = pd.concat([df, row], axis =1)
+    # break 
+   # df['date'] = date
+
 
 
 df = df.transpose()

@@ -176,7 +176,7 @@ for ticker in tickers:
     
     strats = strats[strats['symbol'] == ticker]
     
-    kelly = abs(kelly_criterion(ticker, period = "6mo"))
+    kelly = kelly_criterion(ticker, period = "6mo")
     
     strat = 'Short_Open'
     symbol = ticker

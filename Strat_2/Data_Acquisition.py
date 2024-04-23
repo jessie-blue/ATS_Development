@@ -30,8 +30,25 @@ df = pf.format_idx_date(df)
 df['labels'] = (df['open_close'] >= 0).astype(int) 
 df['open_high'] = df['open_high'] * (-1)
 
-green_day_stats = pf.cluster_stats(df, 1, "open_close", "open_high", "open_low")
-red_day_stats = pf.cluster_stats(df, 0, "open_close", "open_high", "open_low")
+# =============================================================================
+# BAR STATS 
+# =============================================================================
+df_green, green_day_stats = pf.cluster_stats(df, 1, "open_close", "open_high", "open_low")
+df_Red, red_day_stats = pf.cluster_stats(df, 0, "open_close", "open_high", "open_low")
+
+green_day_stats.columns = ['open_close_green', "open_high_green", "open_low_green"]
+red_day_stats.columns = ['open_close_red', "open_high_red", "open_low_red"]
+stats = green_day_stats.merge(red_day_stats, left_index = True, right_index = True)
+
+DATE = datetime.today().strftime('%Y%m%d%H%M')
+MODEL_PATH = Path(f"stats/{ticker}")
+MODEL_PATH.mkdir(parents = True, exist_ok = True)
+FILENAME = f"{ticker}_stats_{DATE}.csv"
+if FILENAME not in os.listdir(MODEL_PATH):
+    stats.to_csv(MODEL_PATH / FILENAME)
+# =============================================================================
+# END
+# =============================================================================
 
 cols = df.columns[4:]
 

@@ -424,11 +424,11 @@ from datetime import date
 
 def kelly_criterion(ticker, 
                     date_to = date.today(), 
-                    period = "240mo"):
+                    period = "120mo"):
     
     from dateutil.relativedelta import relativedelta
     import datetime    
-    ticker = 'AMLP'
+    #ticker = 'AMLP'
     df = pd.read_csv(f'strat_returns/{ticker}.csv', header = 0, names = ['date', 'daily_ret'])
     df.date = pd.to_datetime(df.date)
     date_to = pd.to_datetime(date_to)    
@@ -457,7 +457,7 @@ def kelly_criterion(ticker,
 
 
 
-# k  = kelly_criterion("SPY")
+#k  = kelly_criterion("XLU")
 
 
 

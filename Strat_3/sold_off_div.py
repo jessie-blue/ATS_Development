@@ -23,7 +23,7 @@ start_time = time.time()
 prefs = pd.read_csv("prefs_240311.csv")
 
 
-days = range(2,11)
+days = range(2,21)
 
 for idx, row in prefs.iterrows():
     
@@ -61,6 +61,40 @@ for idx, row in prefs.iterrows():
     symbol = yf.Ticker(ticker)
     
     today = df.tail(1)
+    try:
+        current_yield = np.round(float(ann_rate.replace("$",'')) / today['Close'].item(),4)*100
+    
+    except ValueError:
+        current_yield = 'NA'
+    except ZeroDivisionError:
+        current_yield = 'NA'
+    
+    if abs(today['open_high'].iloc[0]) > 4:
+        
+        
+        print(f"Unusual Activity: {ticker}")
+        
+        try: 
+            last_div = datetime.datetime.utcfromtimestamp(symbol.info['lastDividendDate']).strftime("%Y-%m-%d")
+        except KeyError:    
+            last_div = "nan"
+        
+        DATE = datetime.datetime.today().strftime("%Y_%m_%d")
+        MODEL_PATH = Path(f"Orders/{DATE}/")
+        MODEL_PATH.mkdir(parents = True, exist_ok = True)
+    
+        mpf.plot(df, type='candle', 
+                  style='charles', 
+                  volume=True,
+                  figsize = (20,10),
+                  title = f"-- \n {ticker}\n Current Yield: {current_yield}%, Annual Rate: {ann_rate}, Cpn Rate: {cpn_rate}, Call Date: {call_date}",
+                  xlabel = f"Date: {DATE.replace('_', '-')}   (Last dividend date: {last_div})",
+                  ylabel = "Price USD",
+                  addplot = mpf.make_addplot(df['Dividends']),
+                  savefig= MODEL_PATH / f'{ticker}.png'
+                  )
+    
+    
     
     for n in days:
     
@@ -68,7 +102,10 @@ for idx, row in prefs.iterrows():
             
             print(f"BUY: {ticker} - on the BID")
             
-            last_div = datetime.datetime.utcfromtimestamp(symbol.info['lastDividendDate']).strftime("%Y-%m-%d")
+            try: 
+                last_div = datetime.datetime.utcfromtimestamp(symbol.info['lastDividendDate']).strftime("%Y-%m-%d")
+            except KeyError:    
+                last_div = "nan"
             #date_obj = datetime.datetime.utcfromtimestamp(msft.history_metadata['firstTradeDate']).strftime("%Y-%m-%d")
             print("Last Dividend Date: ", last_div)
             
@@ -80,12 +117,13 @@ for idx, row in prefs.iterrows():
                       style='charles', 
                       volume=True,
                       figsize = (20,10),
-                      title = f"-- \n {ticker}\n Annual Rate: {ann_rate}, Cpn Rate: {cpn_rate}, Call Date: {call_date}",
+                      title = f"-- \n {ticker} \n Current Yield: {current_yield}%, Annual Rate: {ann_rate}, Cpn Rate: {cpn_rate}, Call Date: {call_date}",
                       xlabel = f"Date: {DATE.replace('_', '-')}   (Last dividend date: {last_div})",
                       ylabel = "Price USD",
                       addplot = mpf.make_addplot(df['Dividends']),
                       savefig= MODEL_PATH / f'{ticker}.png'
                       )
+            
         # for date in dividend_dates:
             # mpf.plot([], [], marker='o', markersize=10, color='green', label='Dividend', linestyle='None', linewidth=0)
     # if ticker == "MITT-PC":
