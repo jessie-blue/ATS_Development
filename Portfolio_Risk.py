@@ -17,7 +17,7 @@ date = datetime.today().strftime('%Y_%m_%d')
 
 #date = "2024_02_22"
 
-FILE_PATH = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/orders/"
+FILE_PATH = os.getcwd().replace("\\", "/") + "/orders/"
 FILENAME = "Orders_" + date + ".csv"
 
 orders = pd.read_csv(FILE_PATH + FILENAME)

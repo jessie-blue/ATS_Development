@@ -15,7 +15,7 @@ import ta
 import talib
 from statsmodels.tsa.stattools import adfuller
 
-from techinical_analysis import *
+from Strat_4.technical_analysis import *
 from ALGO_KT1 import Preprocessing_functions as pf
 
 

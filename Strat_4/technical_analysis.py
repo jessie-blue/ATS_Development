@@ -30,6 +30,15 @@ def EMA(df, periods = [8, 20, 50, 100, 200]):
     
     return df
 
+def EMA_extensions(df, periods = [8, 20, 50, 100, 200]):
+    ### CHECK FOR UNIT ROOTS ###
+    for period in periods:
+        df[f'EMA{period}'] = talib.EMA(df['Close'], timeperiod=period)
+        df[f"extension_ema{period}"] = df['Close'] - df[f"EMA_period"]
+    
+    return df
+    
+
 def momentum_oscillators(df):
     
     ## ABOVE 70 OVERBOUTH, BELOW 30 OVERSLD, ABOVE/BELOW 50 STRONG TREND
