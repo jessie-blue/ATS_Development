@@ -10,7 +10,8 @@ import joblib
 
 import os 
 from datetime import datetime
-directory = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/Strat_2"
+#directory = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/Strat_2"
+directory = os.getcwd().replace("\\", "/")
 os.chdir(directory)
 import numpy as np
 import pandas as pd 
@@ -22,8 +23,9 @@ from pathlib import Path
 from ALGO_KT1 import Preprocessing_functions as pf 
 from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
+from techinical_analysis import * 
 
-ticker = "SPY"
+ticker = "XLU"
 time_period = "360mo"
 
 ### LOAD FEAT LIST TO ORDER THE DATA ###
@@ -63,10 +65,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 df = pf.downlaod_symbol_data(ticker, period = time_period)
 df = pf.create_momentum_feat(df, ticker)
 df = pf.technical_indicators(df).dropna()
+df = reversal_patterns(df)
+df = continuation_patterns(df)
+df = magic_doji(df)
 df = pf.format_idx_date(df)
 
 # REMOVE DATA SNOOPING 
-out_sample = True
+out_sample = False
 
 if out_sample is True:
     start_date = df_dates.index.min()
@@ -169,6 +174,53 @@ start_capital = 1e4
 df = pd.DataFrame()
 half_kelly = pf.kelly_criterion(ticker, df1.index.min(), period = "360mo") / 2 
 
+# for date, row in df1.iterrows():
+    
+#     print(date, row)
+#     half_kelly = pf.kelly_criterion(ticker, date, period = "360mo") / 2 
+    
+#     row['half_kelly'] = half_kelly
+#     row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
+#     row['return'] = row['Close'] / row['Open'] - 1 
+#     row['pnl'] = np.where(row['predictions'] == 1, round(start_capital* half_kelly * row['return'], 2), 0).astype("float64")
+#     row['eod_capital'] = start_capital + row['pnl'].item()
+    
+#     start_capital = row['eod_capital']
+    
+#     row = row.to_frame()
+
+#     df = pd.concat([df, row], axis =1)
+#     # break 
+#    # df['date'] = date
+
+
+
+# for date, row in df1.iterrows():
+    
+#     print(date, row)
+#     half_kelly = pf.kelly_criterion(ticker, date, period = "360mo") / 2 
+    
+#     row['half_kelly'] = half_kelly
+#     row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
+#     # row['return'] = row['Close'] / row['Open'] - 1 
+    
+#     row['pnl_green'] = start_capital * stats.loc['median', 'open_high_green'] / 100 if row['predictions'] == 0 and row['low_last'] else start_capital * stats.loc['median', 'open_low_green']  
+#     row['pnl_0'] = start_capital * stats.loc['median', 'open_high_red'] / 100 if row['predictions'] == 1 and row['low_last'] else start_capital * stats.loc['median', 'open_low_red']  
+    
+#     row['pnl'] = np.where(row['predictions'] == 1, round(start_capital* half_kelly * row['return'], 2), 0).astype("float64")
+#     row['eod_capital'] = start_capital + row['pnl'].item()
+    
+#     start_capital = row['eod_capital']
+    
+#     row = row.to_frame()
+
+#     df = pd.concat([df, row], axis =1)
+#     # break 
+#    # df['date'] = date
+
+
+
+
 for date, row in df1.iterrows():
     
     print(date, row)
@@ -177,7 +229,10 @@ for date, row in df1.iterrows():
     row['half_kelly'] = half_kelly
     row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
     row['return'] = row['Close'] / row['Open'] - 1 
-    row['pnl'] = np.where(row['predictions'] == 1, round(start_capital* half_kelly * row['return'], 2), 0).astype("float64")
+    capital = start_capital * half_kelly
+    row['usd_return'] = row['return'] * capital
+    
+    row['pnl'] = np.where(row['predictions'] == 1, row['usd_return']*(-1), row['usd_return'])
     row['eod_capital'] = start_capital + row['pnl'].item()
     
     start_capital = row['eod_capital']
@@ -189,29 +244,6 @@ for date, row in df1.iterrows():
    # df['date'] = date
 
 
-
-for date, row in df1.iterrows():
-    
-    print(date, row)
-    half_kelly = pf.kelly_criterion(ticker, date, period = "360mo") / 2 
-    
-    row['half_kelly'] = half_kelly
-    row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
-    # row['return'] = row['Close'] / row['Open'] - 1 
-    
-    row['pnl_green'] = start_capital * stats.loc['median', 'open_high_green'] / 100 if row['predictions'] == 0 and row['low_last'] else start_capital * stats.loc['median', 'open_low_green']  
-    row['pnl_0'] = start_capital * stats.loc['median', 'open_high_red'] / 100 if row['predictions'] == 1 and row['low_last'] else start_capital * stats.loc['median', 'open_low_red']  
-    
-    row['pnl'] = np.where(row['predictions'] == 1, round(start_capital* half_kelly * row['return'], 2), 0).astype("float64")
-    row['eod_capital'] = start_capital + row['pnl'].item()
-    
-    start_capital = row['eod_capital']
-    
-    row = row.to_frame()
-
-    df = pd.concat([df, row], axis =1)
-    # break 
-   # df['date'] = date
 
 
 
@@ -227,6 +259,7 @@ plt.ylabel("USD")
 
 
 
+acc = (df['labels'] == df['predictions']).sum() / df.shape[1]
 
 
 

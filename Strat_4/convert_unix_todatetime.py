@@ -1,0 +1,19 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed May  8 17:54:23 2024
+
+@author: ktsar
+"""
+
+import pandas as pd
+
+filename = 'crypto_data/ETHUSD_60.csv'
+
+cols = ['timestamp', "open", "high", "low", "close", "volume", "trades"]
+df = pd.read_csv(filename, names = cols)
+
+
+df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s') # / pd.Timedelta(minutes=1)
+
+
+df.to_csv(filename.replace(".csv", "_v1.csv"), index = False)

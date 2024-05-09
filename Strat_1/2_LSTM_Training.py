@@ -16,7 +16,7 @@ from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_dat
 from torch.utils.data import DataLoader #, TensorDataset
 from LSTM_Architecture import LSTM, LSTM_V3, TimeSeriesDataset
 
-ticker = "AAPL"
+ticker = "VNQ"
 
 # LOAD DF FOR MODEL BUILDING 
 FILE_PATH = f"Data/{ticker}/df/"
@@ -33,7 +33,7 @@ df_model = df_model.set_index("Date")
 
 end_date = df_model.index.max()
 seq_length =  1
-test_size_pct = 0.15
+test_size_pct = 0.25
 
 df_model = df_model.sort_index(ascending = False)
 
@@ -44,6 +44,7 @@ df_model = min_max_scaling(df_model)
 df_model['last_day'] = (df_model.index == end_date).astype(int)
 
 X, y  = create_multivariate_rnn_data(df_model, seq_length)
+
 
 # Train, Test Split 
 test_size = int(X.shape[0] * test_size_pct) 
@@ -67,7 +68,7 @@ hidden_size = 32
 num_layers = 2 
 learning_rate = 0.01
 momentum = 0.9
-epochs =  int(2e4)
+epochs =  int(3e3)
 num_classes = 3
 batch_size = 32
 hidden_size1 = 32

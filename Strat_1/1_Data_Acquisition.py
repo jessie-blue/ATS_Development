@@ -9,12 +9,18 @@ import joblib
 from datetime import datetime
 from pathlib import Path 
 from Preprocessing_functions import *
+from techinical_analysis import *
 
-ticker = "AAPL"
+ticker = "VNQ"
 n_clusters = 3
 
-df = downlaod_symbol_data(ticker)
+df = downlaod_symbol_data(ticker, period = "48mo")
 df = create_momentum_feat(df, ticker)
+df = momentum_oscillators(df)
+df = volatility(df)
+df = reversal_patterns(df) 
+df = continuation_patterns(df)
+df = magic_doji(df)
 
 data, _, kmeans = k_means_clustering(df, n_clusters + 1)
 
@@ -33,7 +39,9 @@ for cluster_label in range(0,data.labels.nunique()):
                           
     cluster_dist = pd.concat([cluster_dist,stat], axis = 1)
 
-df_model = merge_dfs(data, df, ticker)
+#df_model = merge_dfs(data, df, ticker)
+data = data[['labels']]
+df_model = data.merge(df, left_index= True, right_index=True)
 
 save = True
 day = datetime.today().strftime('%Y%m%d%H%M')

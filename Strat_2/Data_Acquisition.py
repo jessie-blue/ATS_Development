@@ -7,7 +7,9 @@ Created on Thu Mar  7 14:20:27 2024
 
 import os 
 from datetime import datetime
-directory = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/Strat_2"
+
+directory = os.getcwd().replace("\\", "/")
+#directory = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/Strat_2"
 os.chdir(directory)
 import pandas as pd 
 import torch
@@ -18,18 +20,22 @@ from pathlib import Path
 from ALGO_KT1 import Preprocessing_functions as pf 
 from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
+from techinical_analysis import * 
 
-
-ticker = "SPY"
+ticker = "XLU"
 
 df = pf.downlaod_symbol_data(ticker)
 df = pf.create_momentum_feat(df, ticker)
 df = pf.technical_indicators(df).dropna()
+df = reversal_patterns(df)
+df = continuation_patterns(df)
+df = magic_doji(df)
 df = pf.format_idx_date(df)
 
-df['labels'] = (df['open_close'] >= 0).astype(int) 
+df['labels'] = ((df['Close'] - df['Open']) >= 0).astype(int) 
 df['open_high'] = df['open_high'] * (-1)
 
+print(df['labels'].value_counts())
 # =============================================================================
 # BAR STATS 
 # =============================================================================
@@ -52,7 +58,11 @@ if FILENAME not in os.listdir(MODEL_PATH):
 
 cols = df.columns[4:]
 
-df1 = df[cols].dropna().drop(columns = ["Capital Gains", "Stock Splits"])
+try:
+    df1 = df[cols].dropna().drop(columns = ["Capital Gains", "Stock Splits"])
+except KeyError:
+    df1 = df[cols].dropna()
+
 
 end_date = df1.index.max()
 seq_length =  1
@@ -62,6 +72,8 @@ df1 = df1.sort_index(ascending = False)
 
 
 ### make a directory of the symbol if not there 
+MODEL_PATH = Path(f"data/{ticker}")
+MODEL_PATH.mkdir(parents = True, exist_ok = True)
 df1.to_parquet(f"data/{ticker}/DF_{end_date.strftime('%Y_%m_%d')}.parquet")
 
 model_feat = pd.DataFrame(list(df1.columns))
@@ -90,7 +102,7 @@ y_test_tensor = torch.from_numpy(y_test.values).type(torch.LongTensor)#.unsqueez
 input_feat = X_train.shape[2]
 hidden_size = 32
 num_layers = 2 
-learning_rate = 0.01
+learning_rate = 0.001
 momentum = 0.9
 epochs =  int(2e4)
 num_classes = 2
@@ -239,6 +251,8 @@ for epoch in range(epochs):
 
 
 
+y_test[52].value_counts()
+y_test['labels'].value_counts()
 
 
 

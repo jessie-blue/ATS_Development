@@ -13,10 +13,11 @@ import torch.nn
 from LSTM_Architecture import LSTM
 from pathlib import Path
 from Preprocessing_functions import *
+from techinical_analysis import * 
 
-ticker = "AMLP"
+ticker = "VNQ"
 n_clusters = 3 
-time_period = "120mo"
+time_period = "36mo"
 
 ### LOAD KMEANS MODEL ###
 KMEANS_PATH = f"kmeans_models/{ticker}/"
@@ -65,7 +66,7 @@ df = downlaod_symbol_data(ticker, period = time_period)
 df = format_idx_date(df)
 
 # REMOVE DATA SNOOPING 
-out_sample = False
+out_sample = True
 
 if out_sample is True:
     start_date = df_dates.index.min()
@@ -76,7 +77,11 @@ if out_sample is True:
 
 
 df = create_momentum_feat(df, ticker).dropna()
-
+df = momentum_oscillators(df)
+df = volatility(df)
+df = reversal_patterns(df) 
+df = continuation_patterns(df)
+df = magic_doji(df)
 ### ASSIGN CLUSTER TO OBSERVATION ###
 data = df[["open_low", "open_close", "gap"]].dropna()
 k_predictions = pd.DataFrame(loaded_kmeans.predict(data), columns = ["labels"], index = data.index)
@@ -142,8 +147,8 @@ predictions = pd.DataFrame(pred.to("cpu").numpy(), columns = ["predictions"], in
 
 
 df2 = df2.merge(predictions, left_index = True, right_index = True)
-df1 = df1.merge(df2, left_index = True, right_index = True)
-
+#df1 = df1.merge(df2, left_index = True, right_index = True)
+df1 = df2.copy()
 del pred, output, predictions
 
 cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
@@ -190,8 +195,13 @@ if half_kelly_metric is True:
     
     for date, row in df1.iterrows():
         
-        half_kelly = kelly_criterion(ticker, date) / 2
-        #half_kelly =  1
+      #  try:
+            #half_kelly = kelly_criterion(ticker, date) / 2
+       # except FileNotFoundError:
+           # half_kelly =  1
+            
+            
+        half_kelly = 1
         # if half_kelly < 1:
         #     print("Convert half kelly to 1")
         #     half_kelly = 1
@@ -314,7 +324,7 @@ fig.text(0.1, 0.03, stats_text, fontsize=12,
          verticalalignment='top', horizontalalignment='left',
          bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
 
-save = False
+save = True
 if save is True:
     plt.savefig(f"Short_Open_Backtests/Backtest_{ticker}_hk{half_kelly}", bbox_inches='tight')
 
@@ -328,6 +338,7 @@ if out_sample is False:
     if time_period == "12mo":
         rets = df1['daily_ret'].to_frame()
         rets.to_csv(f'strat_returns/{ticker}.csv')
+        #rets.to_csv(f'{ticker}.csv')
 
 
 
