@@ -6,7 +6,7 @@ Created on Tue Feb 27 17:20:46 2024
 """
 
 import os 
-cwd = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development".replace("\\", "/"  )
+cwd = os.getcwd().replace("\\", "/"  )
 os.chdir(cwd)
 
 import numpy as np
@@ -102,6 +102,4 @@ for idx, row in file.iterrows():
     df_ret.to_csv(f'Strat_1/strat_returns/{ticker}.csv', index = False)
 
 
-
-
-
+print(file)
