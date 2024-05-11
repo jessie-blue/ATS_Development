@@ -28,7 +28,7 @@ except ModuleNotFoundError:
     from Strat_1.Preprocessing_functions import *;
     from Strat_1.LSTM_Architecture import LSTM
 
-cwd = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/Strat_1".replace("\\", "/"  )
+cwd = os.getcwd().replace("\\", "/"  )
 os.chdir(cwd)
 
 tickers = ["XLU", "USO", "XLI", "AMLP", "SPY"]
@@ -171,7 +171,7 @@ for ticker in tickers:
     # =============================================================================
     
    # if "SELL" in actions[pred[0].item()]:
-    strats_path = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development"
+    strats_path = cwd.replace("Strat_1", "")
     strats = pd.read_csv(strats_path + "/strategies.csv")
     
     strats = strats[strats['symbol'] == ticker]
@@ -215,7 +215,7 @@ for ticker in tickers:
     else:
         date = (df.index.max() + timedelta(days = 1)).strftime('%Y_%m_%d')
     
-    FILE_PATH = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/orders/"
+    FILE_PATH = cwd.replace("Strat_1", "orders/")
     FILENAME = "Orders_" + date.replace("-", "_") + ".csv"
     
     if FILENAME not in os.listdir(FILE_PATH):
