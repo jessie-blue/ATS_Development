@@ -1,0 +1,5 @@
+conda env create -f pytorch_env.yml
+
+and then the usual:
+
+conda activate pytorch
