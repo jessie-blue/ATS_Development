@@ -162,7 +162,7 @@ for ticker in tickers:
             actions[cluster] = f"HOLD"
     
     
-    print(actions[pred[0].item()])
+    print(ticker, actions[pred[0].item()])
     
     predictions = pd.DataFrame(pred.to("cpu").numpy(), columns = ["predictions"])
     
