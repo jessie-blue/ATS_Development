@@ -1,0 +1,6 @@
+strat,ticker,direction,last_close_price,capital,half_kelly,bp_used,n_shares,open_position,target_price,expected_return,stop_price,low,high,target_reached,pnl,eod_capital
+Short_Open,XLU,HOLD,72.28,9505.05,1.0,9505.05,131,72.19,72.03,0.0022,72.34,71.94,72.51,True,0.0,9505.05
+Short_Open,USO,HOLD,76.25,10119.75,1.0,10119.75,132,76.35,75.93,0.005506,76.97,76.16,77.11,False,0.0,10119.75
+Short_Open,XLI,SELL,125.19,10476.67,1.0,10476.67,83,125.29,124.54,0.005969,125.33,124.71,125.48,False,-3.32,10473.35
+Short_Open,AMLP,SELL,46.23,9293.4,1.545,14358.3,310,46.23,45.88,0.00749,46.68,45.91,46.7,False,-139.5,9153.9
+Short_Open,SPY,HOLD,528.69,11513.93,2.13,24524.67,46,528.81,527.95,0.001622,529.45,527.32,529.52,True,0.0,11513.93
