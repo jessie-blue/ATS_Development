@@ -102,5 +102,5 @@ for idx, row in file.iterrows():
 
 
 print(file)
-print('Daily PNL: ',file['pnl'].sum())
-print('Kapital ',file['eod_capital'].sum() - 5e4)
+print('Daily PNL: ', round(file['pnl'].sum(),2))
+print('Strat Profit', round(file['eod_capital'].sum() - 5e4, 2))
