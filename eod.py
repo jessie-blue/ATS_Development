@@ -102,3 +102,5 @@ for idx, row in file.iterrows():
 
 
 print(file)
+print('Daily PNL: ',file['pnl'].sum())
+print('Kapital ',file['eod_capital'].sum() - 5e4)
