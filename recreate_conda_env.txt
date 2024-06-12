@@ -3,3 +3,9 @@ conda env create -f pytorch_env.yml
 and then the usual:
 
 conda activate pytorch
+
+#########################################
+
+You will also need to install manually talib using the provided wheel - TA_Lib-04.29-cp311-cp311-win_amd64.whl
+
+pip install TA_Lib-04.29-cp311-cp311-win_amd64.whl
