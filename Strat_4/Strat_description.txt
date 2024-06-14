@@ -1,0 +1,29 @@
+When VWAP is below P by some threshold pct, we SELL P aiming to close the difference between VWAP and P. 
+
+When VWAP is above P by some threshold pct, we BUY P aiming to close the difference between VWAP and P. 
+
+Calculated as:
+df['vwap_diff'] = df['Close'] - df['vwap'] 
+
+# if -ve then VWAP > Close ==> BUY P
+
+Stats used to determine the thresholdfor entry FOR BTC (min and max):
+vwap_pct_diff
+count	532
+min	-0.1169 ==> we short sell when vwap_pct_diff >= -0.05
+max	0.1563 ==> we buy P when vwap_pct_diff => 0.05
+mean	0.0135
+median	0.0102
+std	0.0463
+skew	0.2801
+kurtosis	0.2427
+
+
+
+
+Different variants:
+
+Tickers
+Thresholds 
+Combine with other technical indicators  
+Different frequencies - minute, hourly, daily weekly 
