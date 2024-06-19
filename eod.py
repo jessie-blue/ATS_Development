@@ -35,6 +35,8 @@ for idx, row in file.iterrows():
     
     ticker = row['ticker']
     
+    print(ticker)
+    
     df = downlaod_symbol_data(ticker, period= "1mo")
     df = df[df.index.strftime("%Y_%m_%d") == date]
     
