@@ -105,4 +105,4 @@ for idx, row in file.iterrows():
 
 print(file)
 print('Daily PNL: ', round(file['pnl'].sum(),2))
-print('Strat Profit', round(file['eod_capital'].sum() - 5e4, 2))
+print('Strat PNL', round(file['eod_capital'].sum() - 5e4, 2))
