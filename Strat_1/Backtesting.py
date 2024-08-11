@@ -15,9 +15,9 @@ from pathlib import Path
 from Preprocessing_functions import *
 from techinical_analysis import * 
 
-ticker = "VNQ"
+ticker = "GDX"
 n_clusters = 3 
-time_period = "36mo"
+time_period = "240mo"
 
 ### LOAD KMEANS MODEL ###
 KMEANS_PATH = f"kmeans_models/{ticker}/"
@@ -66,7 +66,7 @@ df = downlaod_symbol_data(ticker, period = time_period)
 df = format_idx_date(df)
 
 # REMOVE DATA SNOOPING 
-out_sample = True
+out_sample = False
 
 if out_sample is True:
     start_date = df_dates.index.min()
@@ -84,6 +84,7 @@ df = continuation_patterns(df)
 df = magic_doji(df)
 ### ASSIGN CLUSTER TO OBSERVATION ###
 data = df[["open_low", "open_close", "gap"]].dropna()
+print(data.shape)
 k_predictions = pd.DataFrame(loaded_kmeans.predict(data), columns = ["labels"], index = data.index)
 #data = data.merge(k_predictions, left_index = True, right_index = True)#.reset_index()
 del FILE, KMEANS_NAME, KMEANS_PATH, loaded_kmeans

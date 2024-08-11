@@ -16,12 +16,12 @@ from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_dat
 from torch.utils.data import DataLoader #, TensorDataset
 from LSTM_Architecture import LSTM, LSTM_V3, TimeSeriesDataset
 
-ticker = "VNQ"
+ticker = "GDX"
 
 # LOAD DF FOR MODEL BUILDING 
 FILE_PATH = f"Data/{ticker}/df/"
 print("DataFrames for model building: ", os.listdir(FILE_PATH))
-idx = 0 if len(os.listdir(FILE_PATH)) else int(input("Select file index: "))
+idx = 0 if len(os.listdir(FILE_PATH)) < 2 else int(input("Select file index: "))
 DF_NAME = os.listdir(FILE_PATH)[idx] 
 FILE_PATH_NAME = FILE_PATH + DF_NAME
 
@@ -68,7 +68,7 @@ hidden_size = 32
 num_layers = 2 
 learning_rate = 0.01
 momentum = 0.9
-epochs =  int(3e3)
+epochs =  int(2e3)
 num_classes = 3
 batch_size = 32
 hidden_size1 = 32
@@ -114,8 +114,8 @@ else:
 
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(params=model.parameters(), 
-                            lr=learning_rate, 
-                            momentum = momentum)
+                            lr=learning_rate) 
+                            #momentum = momentum)
 
 torch.manual_seed(42)
 

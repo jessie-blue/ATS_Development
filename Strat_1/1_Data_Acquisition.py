@@ -11,10 +11,10 @@ from pathlib import Path
 from Preprocessing_functions import *
 from techinical_analysis import *
 
-ticker = "VNQ"
+ticker = "XLU"
 n_clusters = 3
 
-df = downlaod_symbol_data(ticker, period = "48mo")
+df = downlaod_symbol_data(ticker, period = "80mo")
 df = create_momentum_feat(df, ticker)
 df = momentum_oscillators(df)
 df = volatility(df)

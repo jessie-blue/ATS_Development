@@ -22,7 +22,7 @@ from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
 from techinical_analysis import * 
 
-ticker = "XLU"
+ticker = "XLI"
 
 df = pf.downlaod_symbol_data(ticker)
 df = pf.create_momentum_feat(df, ticker)
@@ -66,7 +66,7 @@ except KeyError:
 
 end_date = df1.index.max()
 seq_length =  1
-test_size_pct = 0.20
+test_size_pct = 0.30
 
 df1 = df1.sort_index(ascending = False)
 
@@ -104,7 +104,7 @@ hidden_size = 32
 num_layers = 2 
 learning_rate = 0.001
 momentum = 0.9
-epochs =  int(2e4)
+epochs =  int(2e3)
 num_classes = 2
 batch_size = 32
 hidden_size1 = 32
