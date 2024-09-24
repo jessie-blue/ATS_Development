@@ -20,24 +20,29 @@ from pathlib import Path
 
 start_time = time.time()
 
-prefs = pd.read_csv("prefs_240311.csv")
+prefs = pd.read_csv("prefs_240924.csv")
 
+prefs = prefs.rename(columns={'Symbol\nCUSIP' : 'Symbol'})
 
 days = range(2,21)
 
 for idx, row in prefs.iterrows():
     
-    
+    #print(row)
     print(row["Symbol"].split('\n')[0].replace('-', '-P'))
-    ticker = row["Symbol"].split('\r\n')[0].replace('-', '-P')
-
+    ticker = row["Symbol"].split('\n')[0].replace('-', '-P')
+    #print(ticker)
     if ticker == "Symbol":
         continue
 
-    call_date = row['Call Date'].split('\r\n')[0]
-    mat_date = row['Call Date'].split('\n')[1]
-    cpn_rate = row['Cpn Rate\r\nAnn Amt'].split("\n")[0].strip()
-    ann_rate = row['Cpn Rate\r\nAnn Amt'].split("\n")[1].strip()
+    #call_date = row['Call Date'].split('\r\n')[0]
+    call_date = row['Call Date\nMatur Date'].split('\r\n')[0]
+    #mat_date = row['Call Date'].split('\n')[1]
+    mat_date = row['Call Date\nMatur Date'].split('\n')[1]
+    #cpn_rate = row['Cpn Rate\r\nAnn Amt'].split("\n")[0].strip()
+    cpn_rate = row['Cpn Rate\nAnn Amt'].split("\n")[0].strip()
+    #ann_rate = row['Cpn Rate\r\nAnn Amt'].split("\n")[1].strip()
+    ann_rate = row['Cpn Rate\nAnn Amt'].split("\n")[1].strip()
 
     df = pf.downlaod_symbol_data(ticker, period = "6mo")
     
