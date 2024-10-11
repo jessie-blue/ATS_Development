@@ -36,7 +36,7 @@ for idx, row in prefs.iterrows():
         continue
 
     #call_date = row['Call Date'].split('\r\n')[0]
-    call_date = row['Call Date\nMatur Date'].split('\r\n')[0]
+    call_date = row['Call Date\nMatur Date'].split('\n')[0]
     #mat_date = row['Call Date'].split('\n')[1]
     mat_date = row['Call Date\nMatur Date'].split('\n')[1]
     #cpn_rate = row['Cpn Rate\r\nAnn Amt'].split("\n")[0].strip()
