@@ -37,8 +37,10 @@ for idx, row in file.iterrows():
     
     print(ticker)
     
-    df = downlaod_symbol_data(ticker, period= "1mo")
-    df = df[df.index.strftime("%Y_%m_%d") == date]
+    df = downlaod_symbol_data(ticker, period= "3mo")
+    df = df[df.index.strftime("%Y_%m_%d") == date] # this is where the code breaks / check conversions 
+    
+    #break
     
     file.loc[file["ticker"] ==  ticker, "open_position"] = df['Open'].item()
     file.loc[file["ticker"] ==  ticker, "stop_price"] = df['Close'].item()
