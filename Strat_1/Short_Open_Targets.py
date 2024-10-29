@@ -11,16 +11,15 @@ import pandas as pd
 from datetime import datetime 
 from Preprocessing_functions import downlaod_symbol_data
 
-
 date = datetime.today().strftime('%Y_%m_%d')
 
-FILE_PATH = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/orders/"
+FILE_PATH = os.getcwd() + "/orders/"
 FILENAME = "Orders_" + date + ".csv"
 
 orders = pd.read_csv(FILE_PATH + FILENAME)
+orders = orders[orders['direction'] == 'SELL']
 tickers = list(orders['ticker'])
 
-ticker = tickers[0]
 
 for ticker in tickers:
     
