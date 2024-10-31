@@ -19,13 +19,14 @@ FILENAME = "Orders_" + date + ".csv"
 orders = pd.read_csv(FILE_PATH + FILENAME)
 orders = orders[orders['direction'] == 'SELL']
 tickers = list(orders['ticker'])
-
+#print(orders)
 
 for ticker in tickers:
     
     target_pct = orders[orders['ticker'] == ticker]['target_price'].item()
     
     open_price = downlaod_symbol_data(ticker, period = "1mo")['Open'].iloc[-1].item()
+    print('Open Price: ' , open_price)
     target = round(open_price * target_pct, 2)
 
     print(f"{date} {ticker} - Price target = {target}")
