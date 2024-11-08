@@ -22,7 +22,7 @@ from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
 from techinical_analysis import * 
 
-ticker = "XLI"
+ticker = "SPY"
 
 df = pf.downlaod_symbol_data(ticker)
 df = pf.create_momentum_feat(df, ticker)
@@ -35,7 +35,7 @@ df = pf.format_idx_date(df)
 df['labels'] = ((df['Close'] - df['Open']) >= 0).astype(int) 
 df['open_high'] = df['open_high'] * (-1)
 
-print(df['labels'].value_counts())
+print(f"0 - red bar n/ 1 - green bar",df['labels'].value_counts())
 # =============================================================================
 # BAR STATS 
 # =============================================================================
@@ -47,7 +47,7 @@ red_day_stats.columns = ['open_close_red', "open_high_red", "open_low_red"]
 stats = green_day_stats.merge(red_day_stats, left_index = True, right_index = True)
 
 DATE = datetime.today().strftime('%Y%m%d%H%M')
-MODEL_PATH = Path(f"stats/{ticker}")
+MODEL_PATH = Path(f"Strat_2/stats/{ticker}")
 MODEL_PATH.mkdir(parents = True, exist_ok = True)
 FILENAME = f"{ticker}_stats_{DATE}.csv"
 if FILENAME not in os.listdir(MODEL_PATH):
@@ -74,7 +74,7 @@ df1 = df1.sort_index(ascending = False)
 ### make a directory of the symbol if not there 
 MODEL_PATH = Path(f"data/{ticker}")
 MODEL_PATH.mkdir(parents = True, exist_ok = True)
-df1.to_parquet(f"data/{ticker}/DF_{end_date.strftime('%Y_%m_%d')}.parquet")
+df1.to_parquet(f"Strat_2/data/{ticker}/DF_{end_date.strftime('%Y_%m_%d')}.parquet")
 
 model_feat = pd.DataFrame(list(df1.columns))
 
@@ -104,7 +104,7 @@ hidden_size = 32
 num_layers = 2 
 learning_rate = 0.001
 momentum = 0.9
-epochs =  int(2e3)
+epochs =  int(15e3)
 num_classes = 2
 batch_size = 32
 hidden_size1 = 32
@@ -157,6 +157,9 @@ torch.manual_seed(42)
 
 best_test_accuracy = 0 
 best_epoch = 0 
+best_avg_acc = 0
+
+results = {}
 
 # TRAIN AND TEST MODEL (NEEDS TO BE REFACTORED IN FNS)
 for epoch in range(epochs):
@@ -213,33 +216,34 @@ for epoch in range(epochs):
         test_loss /= len(test_loader)
         test_acc  /= len(test_loader)
     
-    if test_acc > best_test_accuracy:
-        
-        # UPDATE BEST MODEL
-        best_test_accuracy = test_acc
-        best_epoch = epoch
-        
-        # CREATE MODELS DIRECTORY 
-        DATE = datetime.today().strftime('%Y%m%d%H%M')
-        MODEL_PATH = Path(f"lstm_models/{ticker}")
-        MODEL_PATH.mkdir(parents = True, exist_ok = True)
-        
-        # CREATE MODEL SAVE PATH
-        MODEL_NAME = f"LSTM_Class_Epoch_{epoch}_TestAcc_{test_acc:.2f}_TrainAcc_{avg_acc:.2F}_{DATE}"
-        MODEL_SAVE_PATH = MODEL_PATH / MODEL_NAME
-        
-        # SAVE THE INPUT FEATURES OF THE MODEL
-        FEAT_PATH = Path(f"model_features/{ticker}")
-        FEAT_PATH.mkdir(parents= True, exist_ok= True)
-        FEAT_NAME = f"LSTM_{DATE}_NFEAT{model_feat.shape[0]}.csv"
-        if FEAT_NAME not in os.listdir(FEAT_PATH):
-            FEAT_SAVE_PATH = FEAT_PATH / FEAT_NAME
-            model_feat.to_csv(FEAT_SAVE_PATH, index = False)
-        
-        # SAVE MODEL STATE DICT
-        print(f"Saving model to: {MODEL_SAVE_PATH}")
-        torch.save(obj = model.state_dict(), f = MODEL_SAVE_PATH)
-    
+        if test_acc > best_test_accuracy or best_avg_acc > avg_acc:
+            #if test_acc >= 0.68 and best_avg_acc >= 0.68:
+            # UPDATE BEST MODEL
+            best_test_accuracy = test_acc
+            best_epoch = epoch
+            
+            # CREATE MODELS DIRECTORY 
+            DATE = datetime.today().strftime('%Y%m%d%H%M')
+            MODEL_PATH = Path(f"Strat_2/lstm_models/{ticker}")
+            MODEL_PATH.mkdir(parents = True, exist_ok = True)
+            
+            # CREATE MODEL SAVE PATH
+            MODEL_NAME = f"LSTM_Class_Epoch_{epoch}_TestAcc_{test_acc:.2f}_TrainAcc_{avg_acc:.2F}_{DATE}"
+            MODEL_SAVE_PATH = MODEL_PATH / MODEL_NAME
+            
+            # SAVE THE INPUT FEATURES OF THE MODEL
+            FEAT_PATH = Path(f"Strat_2/model_features/{ticker}")
+            FEAT_PATH.mkdir(parents= True, exist_ok= True)
+            FEAT_NAME = f"LSTM_{DATE}_NFEAT{model_feat.shape[0]}.csv"
+            if FEAT_NAME not in os.listdir(FEAT_PATH):
+                FEAT_SAVE_PATH = FEAT_PATH / FEAT_NAME
+                model_feat.to_csv(FEAT_SAVE_PATH, index = False)
+            
+            # SAVE MODEL STATE DICT
+            print(f"Saving model to: {MODEL_SAVE_PATH}")
+            torch.save(obj = model.state_dict(), f = MODEL_SAVE_PATH)
+
+    results.update({epoch, [avg_acc, test_acc]})
     #print(f"Epoch: {epoch}, Loss: {avg_loss:.4f}, Accuracy: {avg_acc:.2f} ")
     print(f"Epoch: {epoch}, Train Loss: {avg_loss:.4f}, Train Acc: {avg_acc:.2f}, Test Loss: {test_loss:.4f}, Test Accuracy: {test_acc:.2f}" )
 
@@ -251,8 +255,8 @@ for epoch in range(epochs):
 
 
 
-y_test[52].value_counts()
-y_test['labels'].value_counts()
+#y_test[52].value_counts()
+#y_test['labels'].value_counts()
 
 
 

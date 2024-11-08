@@ -25,7 +25,7 @@ from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
 from techinical_analysis import * 
 
-ticker = "XLU"
+ticker = "SPY"
 time_period = "360mo"
 
 ### LOAD FEAT LIST TO ORDER THE DATA ###
@@ -83,7 +83,11 @@ if out_sample is True:
 
 seq_length =  1
 df = df.sort_index(ascending = False)
-df['labels'] = (df['open_close'] >=0).astype(int)
+
+# Labels
+df['labels'] = (df['open_close'] >=0).astype(int) # this might be wrong!
+# labels used in the Data_Acquistion
+df['labels'] = ((df['Close'] - df['Open']) >= 0).astype(int) 
 
 # preserve the price features to use in the backtest data
 drop_cols = ['Open', 'High', 'Low', 'Close', 'Stock Splits']
@@ -153,18 +157,21 @@ del pred, output, predictions
 ACC = (df1['labels'] == df1['predictions']).sum() / df1.shape[1]
 
 ######## INFER HIGH OR LOW WAS FIRST ######
+### NOT SURE WE NEED THIS 
+#df1['low_first'] = df1['Close'] >= df1['Open']
+#df1['low_last'] = df1['Close'] <= df1['Open'] 
 
-df1['low_first'] = df1['Close'] >= df1['Open']
-df1['low_last'] = df1['Close'] <= df1['Open'] 
-
-df1['labels'] = (df1['Close'] > df1['Open']).astype(int)
+#df1['labels'] = (df1['Close'] > df1['Open']).astype(int)
 
 ######## BACKTESTING #########
 
 df1 = df1.sort_index()
-df1_cols = [i for i in df1.columns if "mom" not in i]
-df1 = df1[df1_cols]
-del df1_cols
+
+
+# DROPPING Momentum features - not sure why!
+#df1_cols = [i for i in df1.columns if "mom" not in i]
+#df1 = df1[df1_cols]
+#del df1_cols
 
 df1 = df1.sort_index(ascending = True)
 
@@ -225,9 +232,18 @@ for date, row in df1.iterrows():
     
     print(date, row)
     half_kelly = pf.kelly_criterion(ticker, date, period = "360mo") / 2 
-    
     row['half_kelly'] = half_kelly
-    row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
+    row['shares'] = (start_capital * half_kelly) // row['Open'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
+    row['pnl'] = (row['Open'] - row['Close']) * row['shares'] if row['predictions'] == 0 else (row['Close'] - row['Open']) * row['shares']
+    
+    # Capital adjustments 
+    row['eod_capital'] = start_capital + row['pnl'].item()
+    start_capital = row['eod_capital']
+    
+    # Add the row to the new df 
+    row = row.to_frame()
+    df = pd.concat([df, row], axis =1)
+    break
     row['return'] = row['Close'] / row['Open'] - 1 
     capital = start_capital * half_kelly
     row['usd_return'] = row['return'] * capital
@@ -240,6 +256,8 @@ for date, row in df1.iterrows():
     row = row.to_frame()
 
     df = pd.concat([df, row], axis =1)
+    
+    
     # break 
    # df['date'] = date
 
