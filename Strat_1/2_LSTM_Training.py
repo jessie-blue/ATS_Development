@@ -16,9 +16,10 @@ from Preprocessing_functions import min_max_scaling, create_multivariate_rnn_dat
 from torch.utils.data import DataLoader #, TensorDataset
 from LSTM_Architecture import LSTM, LSTM_V3, TimeSeriesDataset
 
-ticker = "GDX"
+ticker = "SPY"
 
 # LOAD DF FOR MODEL BUILDING 
+#FILE_PATH = f"Strat_1/Data/{ticker}/df/"
 FILE_PATH = f"Data/{ticker}/df/"
 print("DataFrames for model building: ", os.listdir(FILE_PATH))
 idx = 0 if len(os.listdir(FILE_PATH)) < 2 else int(input("Select file index: "))
@@ -32,8 +33,8 @@ df_model = df_model.set_index("Date")
 
 
 end_date = df_model.index.max()
-seq_length =  1
-test_size_pct = 0.25
+seq_length =  10
+test_size_pct = 0.30
 
 df_model = df_model.sort_index(ascending = False)
 
@@ -53,6 +54,15 @@ train_size = X.shape[0] - test_size
 X_train, y_train = X[:train_size], y[:train_size]
 X_test, y_test = X[train_size:], y[train_size:]
 
+# Obtain dates from / to of the train / test slices
+test_set = df_model.iloc[train_size:]
+train_set = df_model.iloc[:train_size]
+
+train_start_date = train_set.index.min()
+train_end_date = train_set.index.max()
+
+test_start_date = test_set.index.min()
+test_end_date = test_set.index.max()
 
 # Convert data to PyTorch tensors AND CHECK DIMENSIONS OF TENSOR AND CHECK THE REQUIRED INPUT FOR LSTM 
 X_train_tensor = torch.from_numpy(X_train).type(torch.float)#.unsqueeze(1)
@@ -68,10 +78,10 @@ hidden_size = 32
 num_layers = 2 
 learning_rate = 0.01
 momentum = 0.9
-epochs =  int(2e3)
+epochs =  int(9e4)
 num_classes = 3
 batch_size = 32
-hidden_size1 = 32
+hidden_size1 = 128
 hidden_size2 = 64
 
 
@@ -95,7 +105,7 @@ for _, batch in enumerate(train_loader):
     break 
 
 #INSTANTIATE MODEL
-base_lstm = True
+base_lstm = False
 
 if base_lstm is True:
     model = LSTM(input_size=input_feat, 
@@ -121,6 +131,7 @@ torch.manual_seed(42)
 
 best_test_accuracy = 0 
 best_epoch = 0 
+best_avg_accuracy = 0
 
 # TRAIN AND TEST MODEL (NEEDS TO BE REFACTORED IN FNS)
 for epoch in range(epochs):
@@ -145,7 +156,7 @@ for epoch in range(epochs):
         
         batch_accuracy = accuracy_fn(y_true = y_batch[:,0], y_pred = pred) 
         acc += batch_accuracy
-        
+        #break # to delete after experimentation 
         #print(f"Epoch: {epoch}, Batch: {batch_index}, Batch Accuracy: {batch_accuracy:.2f}")
         
         #print(epoch, batch_index)
@@ -153,7 +164,7 @@ for epoch in range(epochs):
     
     avg_loss = running_loss / len(train_loader) # batch_index
     avg_acc = acc / len(train_loader) #batch_index
-
+    #break # to delete after experimentation 
     #print(f"Epoch: {epoch}, Loss: {avg_loss:.4f}, Accuracy: {avg_acc:.2f} ")
 
     ### Testing
@@ -177,15 +188,16 @@ for epoch in range(epochs):
         test_loss /= len(test_loader)
         test_acc  /= len(test_loader)
     
-    if test_acc > best_test_accuracy:
+    if test_acc > best_test_accuracy or avg_acc > best_avg_accuracy:
         
         # UPDATE BEST MODEL
         best_test_accuracy = test_acc
         best_epoch = epoch
+        best_avg_accuracy = avg_acc
         
         # CREATE MODELS DIRECTORY 
         DATE = datetime.today().strftime('%Y%m%d%H%M')
-        MODEL_PATH = Path(f"lstm_models/{ticker}")
+        MODEL_PATH = Path(f"Strat_1/lstm_models/{ticker}")
         MODEL_PATH.mkdir(parents = True, exist_ok = True)
         
         # CREATE MODEL SAVE PATH
@@ -193,7 +205,7 @@ for epoch in range(epochs):
         MODEL_SAVE_PATH = MODEL_PATH / MODEL_NAME
         
         # SAVE THE INPUT FEATURES OF THE MODEL
-        FEAT_PATH = Path(f"model_features/{ticker}")
+        FEAT_PATH = Path(f"Strat_1/model_features/{ticker}")
         FEAT_PATH.mkdir(parents= True, exist_ok= True)
         FEAT_NAME = f"LSTM_{DF_NAME.replace('.parquet','')}_NFEAT{model_feat.shape[0]}.csv"
         if FEAT_NAME not in os.listdir(FEAT_PATH):

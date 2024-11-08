@@ -80,6 +80,7 @@ for ticker in tickers:
     print(os.listdir(FEAT_PATH))
     idx = 0 if len(os.listdir(FEAT_PATH)) < 2 else int(input("Select file index (e.g. 0,1,2)"))
     FEAT_NAME = os.listdir(FEAT_PATH)[idx]
+    print('Selected Feature list: ', FEAT_NAME)
     MODEL_FEAT = pd.read_csv(FEAT_PATH + FEAT_NAME)['0'].to_list()
     
     end_date = df_model.index.max()

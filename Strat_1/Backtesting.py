@@ -10,14 +10,16 @@ import joblib
 import torch
 import torch.nn
 
-from LSTM_Architecture import LSTM
+from LSTM_Architecture import LSTM, LSTM_V3
 from pathlib import Path
 from Preprocessing_functions import *
 from techinical_analysis import * 
 
-ticker = "GDX"
+ticker = "SPY"
 n_clusters = 3 
-time_period = "240mo"
+time_period = "360mo" # must be the same as in 1_Data_Acquisition or larger
+V3 = True # choosing LSTM Architecture - advanced with 2 layers
+BASE = False if V3 == True else True # only 1 layer 
 
 ### LOAD KMEANS MODEL ###
 KMEANS_PATH = f"kmeans_models/{ticker}/"
@@ -65,6 +67,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 df = downlaod_symbol_data(ticker, period = time_period)
 df = format_idx_date(df)
 
+df = df[df.index <= "2024-02-01"]
+
 # REMOVE DATA SNOOPING 
 out_sample = False
 
@@ -91,6 +95,7 @@ del FILE, KMEANS_NAME, KMEANS_PATH, loaded_kmeans
 
 df_model = df.merge(k_predictions, left_index = True, right_index = True)
 
+# Create last day feature
 end_date = df_model.index.max()
 df_model['last_day'] = (df_model.index == end_date).astype(int)
 del df, data, k_predictions
@@ -118,17 +123,39 @@ del y
 
 X_tensor = torch.from_numpy(X).type(torch.float).to(device).squeeze(0)
 
-input_feat = df_model.shape[1]
-hidden_size = 32
-num_layers = 2 
-num_classes = 3
 
-# INSTANTIATE MODEL
-model = LSTM(input_size=input_feat, 
-             output_size=num_classes, 
-             hidden_size=hidden_size, 
-             num_layers=num_layers,
-             device=device).to(device)
+
+# Base LSTM Instantiation
+
+if BASE:
+    input_feat = df_model.shape[1]
+    hidden_size = 32
+    num_layers = 2 
+    num_classes = 3
+
+    # INSTANTIATE MODEL
+    model = LSTM(input_size=input_feat, 
+                output_size=num_classes, 
+                hidden_size=hidden_size, 
+                num_layers=num_layers,
+                device=device).to(device)
+
+
+# V3 LSTM Model Instantiation 
+
+if V3:
+    input_feat = df_model.shape[1]
+    num_layers = 2 
+    num_classes = 3
+    hidden_size1 = 128
+    hidden_size2 = 64
+    
+    model = LSTM_V3(input_size=input_feat, 
+                  output_size=num_classes, 
+                  hidden_size1=hidden_size1, 
+                  hidden_size2=hidden_size2,
+                  num_layers=num_layers,
+                  device=device).to(device)
 
 # LOAD LSTM MODEL STATE DICT  
 model.load_state_dict(torch.load(f = MODEL_PATH + MODEL_NAME ))
@@ -146,10 +173,10 @@ with torch.inference_mode():
 ## possible mistake in creating the predictions df - dates might not align properly
 predictions = pd.DataFrame(pred.to("cpu").numpy(), columns = ["predictions"], index = df_model.index[:-1])
 
-
+# Dangerous merge - frequently causes duplicate columns
 df2 = df2.merge(predictions, left_index = True, right_index = True)
-#df1 = df1.merge(df2, left_index = True, right_index = True)
-df1 = df2.copy()
+df1 = df1.merge(df2, left_index = True, right_index = True)
+#df1 = df2.copy()
 del pred, output, predictions
 
 cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
@@ -161,9 +188,11 @@ ACC = (df1['labels'] == df1['predictions']).sum() / df1.shape[1]
 import numpy as np
 
 df1 = df1.sort_index()
-df1_cols = [i for i in df1.columns if "mom" not in i]
-df1 = df1[df1_cols]
-del df1_cols
+
+# removes momentum features from the model - why would i do that? 
+#df1_cols = [i for i in df1.columns if "mom" not in i]
+#df1 = df1[df1_cols]
+#del df1_cols
 
 capital = 25000
 tc = 3
@@ -325,9 +354,9 @@ fig.text(0.1, 0.03, stats_text, fontsize=12,
          verticalalignment='top', horizontalalignment='left',
          bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
 
-save = True
+save = False
 if save is True:
-    plt.savefig(f"Short_Open_Backtests/Backtest_{ticker}_hk{half_kelly}", bbox_inches='tight')
+    plt.savefig(f"Short_Open_Backtests/Backtest_{ticker}_hk{half_kelly}_V2", bbox_inches='tight')
 
 plt.show()
 
@@ -338,7 +367,7 @@ plt.show()
 if out_sample is False:
     if time_period == "12mo":
         rets = df1['daily_ret'].to_frame()
-        rets.to_csv(f'strat_returns/{ticker}.csv')
+        rets.to_csv(f'strat_returns/{ticker}_V2.csv')
         #rets.to_csv(f'{ticker}.csv')
 
 

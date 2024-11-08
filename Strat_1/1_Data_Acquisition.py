@@ -11,16 +11,25 @@ from pathlib import Path
 from Preprocessing_functions import *
 from techinical_analysis import *
 
-ticker = "XLU"
+ticker = "SPY"
 n_clusters = 3
+specific_timeframe = True # usually used to campare against a specific model build 
+save = True # save the data 
 
-df = downlaod_symbol_data(ticker, period = "80mo")
+df = downlaod_symbol_data(ticker, period = "360mo")
 df = create_momentum_feat(df, ticker)
 df = momentum_oscillators(df)
 df = volatility(df)
 df = reversal_patterns(df) 
 df = continuation_patterns(df)
 df = magic_doji(df)
+
+df = df.drop(columns= ['Open', 
+                       'High', 
+                       'Low', 
+                       'Close',
+                       'Stock Splits', 
+                       'Capital Gains'])
 
 data, _, kmeans = k_means_clustering(df, n_clusters + 1)
 
@@ -43,12 +52,15 @@ for cluster_label in range(0,data.labels.nunique()):
 data = data[['labels']]
 df_model = data.merge(df, left_index= True, right_index=True)
 
-save = True
+
+if specific_timeframe:
+    df_model = df_model[df_model.index <= "2024-02-01"]
+
 day = datetime.today().strftime('%Y%m%d%H%M')
 
 if save is True:
         
-    DATA_MODEL_PATH = Path(f"Data/{ticker}/df")
+    DATA_MODEL_PATH = Path(f"Strat_1/Data/{ticker}/df")
     DATA_MODEL_PATH.mkdir(parents = True, exist_ok = True)
     
     DATA_MODEL_NAME =  f"df_{ticker}_k{n_clusters}_{day}.parquet"
@@ -57,13 +69,13 @@ if save is True:
     
     # Save Cluster stats
     STATS_MODEL_NAME = f"KMEANS_Stats_{DATA_MODEL_NAME.replace('.parquet', '')}.csv"
-    STATS_PATH = Path(f"Data/{ticker}/k_stats")
+    STATS_PATH = Path(f"Strat_1/Data/{ticker}/k_stats")
     STATS_PATH.mkdir(parents = True, exist_ok= True)
     STATS_SAVE_PATH = STATS_PATH / STATS_MODEL_NAME
     cluster_dist.to_csv(STATS_SAVE_PATH, index = True)   
     
     # Save kmeans model to a file using joblib
-    KMEANS_MODEL_PATH =  Path(f"kmeans_models/{ticker}")
+    KMEANS_MODEL_PATH =  Path(f"Strat_1/kmeans_models/{ticker}")
     KMEANS_MODEL_PATH.mkdir(parents = True, exist_ok = True)
     
     KMEANS_MODEL_NAME = f"kmeans_model_{DATA_MODEL_NAME.replace('.parquet', '')}.joblib"
