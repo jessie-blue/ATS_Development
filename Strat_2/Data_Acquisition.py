@@ -22,7 +22,7 @@ from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
 from techinical_analysis import * 
 
-ticker = "SPY"
+ticker = "XLU"
 
 df = pf.downlaod_symbol_data(ticker)
 df = pf.create_momentum_feat(df, ticker)
@@ -243,7 +243,7 @@ for epoch in range(epochs):
             print(f"Saving model to: {MODEL_SAVE_PATH}")
             torch.save(obj = model.state_dict(), f = MODEL_SAVE_PATH)
 
-    results.update({epoch, [avg_acc, test_acc]})
+    #results.update({epoch, [avg_acc, test_acc]})
     #print(f"Epoch: {epoch}, Loss: {avg_loss:.4f}, Accuracy: {avg_acc:.2f} ")
     print(f"Epoch: {epoch}, Train Loss: {avg_loss:.4f}, Train Acc: {avg_acc:.2f}, Test Loss: {test_loss:.4f}, Test Accuracy: {test_acc:.2f}" )
 

@@ -71,7 +71,7 @@ df = magic_doji(df)
 df = pf.format_idx_date(df)
 
 # REMOVE DATA SNOOPING 
-out_sample = False
+out_sample = True
 
 if out_sample is True:
     start_date = df_dates.index.min()
@@ -85,7 +85,7 @@ seq_length =  1
 df = df.sort_index(ascending = False)
 
 # Labels
-df['labels'] = (df['open_close'] >=0).astype(int) # this might be wrong!
+#df['labels'] = (df['open_close'] >=0).astype(int) # this might be wrong!
 # labels used in the Data_Acquistion
 df['labels'] = ((df['Close'] - df['Open']) >= 0).astype(int) 
 
@@ -224,38 +224,48 @@ half_kelly = pf.kelly_criterion(ticker, df1.index.min(), period = "360mo") / 2
 #     df = pd.concat([df, row], axis =1)
 #     # break 
 #    # df['date'] = date
-
-
+end_date_for_test = df1.head(200).index.max()
 
 
 for date, row in df1.iterrows():
     
-    print(date, row)
+    #print(date, row)
+    print(date)
     half_kelly = pf.kelly_criterion(ticker, date, period = "360mo") / 2 
     row['half_kelly'] = half_kelly
     row['shares'] = (start_capital * half_kelly) // row['Open'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
     row['pnl'] = (row['Open'] - row['Close']) * row['shares'] if row['predictions'] == 0 else (row['Close'] - row['Open']) * row['shares']
+    row['pnl'] -= 3 
     
     # Capital adjustments 
     row['eod_capital'] = start_capital + row['pnl'].item()
+    
+    row['eod_equity'] = start_capital + row['pnl']
+    row['daily_ret'] = row['eod_equity'] / start_capital - 1
     start_capital = row['eod_capital']
+    
     
     # Add the row to the new df 
     row = row.to_frame()
     df = pd.concat([df, row], axis =1)
-    break
-    row['return'] = row['Close'] / row['Open'] - 1 
-    capital = start_capital * half_kelly
-    row['usd_return'] = row['return'] * capital
     
-    row['pnl'] = np.where(row['predictions'] == 1, row['usd_return']*(-1), row['usd_return'])
-    row['eod_capital'] = start_capital + row['pnl'].item()
+    ### only for testing 
+    #if date == end_date_for_test:
+    #    break
     
-    start_capital = row['eod_capital']
+    # LEGACY CODE 
+    #row['return'] = row['Close'] / row['Open'] - 1 
+    #capital = start_capital * half_kelly
+    #row['usd_return'] = row['return'] * capital
     
-    row = row.to_frame()
+    #row['pnl'] = np.where(row['predictions'] == 1, row['usd_return']*(-1), row['usd_return'])
+    #row['eod_capital'] = start_capital + row['pnl'].item()
+    
+    #start_capital = row['eod_capital']
+    
+    #row = row.to_frame()
 
-    df = pd.concat([df, row], axis =1)
+    #df = pd.concat([df, row], axis =1)
     
     
     # break 
@@ -263,11 +273,90 @@ for date, row in df1.iterrows():
 
 
 
-
-
 df = df.transpose()
-df = df.infer_objects()
+#df = df.infer_objects()
 
+df1 = df.copy()
+
+#####   MAX DRAWDOWN
+from calculateMaxDD import calculateMaxDD
+
+cum_ret = np.cumprod(1+ df1['daily_ret']) - 1
+maxDrawdown, maxDrawdownDuration, startDrawdownDay=calculateMaxDD(cum_ret.values)
+
+#####   SHARPE RATIO
+sharpe_ratio = round(np.sqrt(252) * np.mean(df1['daily_ret']) / np.std(df1['daily_ret']),2)
+
+#####   AVG YEARLY RETURN AND STD
+mean_ret = df1['daily_ret'].mean() * 252
+std = df1['daily_ret'].std()*np.sqrt(252)
+
+import numpy as np
+p_change = df1['Close'].pct_change().dropna() #/ df1['Close'].shift(1)
+corr = np.corrcoef(p_change, df1['Close'][1:])
+
+print(f"Correlation Price / Return: " , round(corr[1][0], 2))
+print(f'Sharpe Ratio: {sharpe_ratio}')
+print(f'Maximum Drawdown: {round(maxDrawdown,4)}')
+print(f'Max Drawdown Duration: {maxDrawdownDuration} days' )
+print(f'Start day Drawdown: {startDrawdownDay}')
+print(f"Average Yearly Return: {round(mean_ret*100, 2)} %")
+
+
+#
+# PLOTTING
+#
+
+# Create figure and axis objects
+plt.rcParams.update({'font.size': 12})
+
+fig, ax1 = plt.subplots(figsize=(10, 7))
+plt.title(f"Green / Red Bar Prediction Strategy - {ticker}")
+
+# Plot data on the first y-axis
+ax1.plot(df1.index, df1['Close'], 'g-', alpha = 0.5)
+ax1.set_xlabel('Date')
+ax1.set_ylabel('Close Price ', color='g')
+
+# Create a second y-axis
+ax2 = ax1.twinx()
+ax2.plot(df1.index, df1['eod_equity'], 'b-')
+ax2.set_ylabel('Equity USD', color='b')
+
+# Add black dotted line at y=0
+#ax1.axhline(y=0, color='k', linestyle='--')
+ax2.axhline(y=1e4, color='k', linestyle='--')
+
+#Remove box lines around the chart area
+ax1.spines['top'].set_visible(False)
+ax1.spines['right'].set_visible(False)
+ax1.spines['bottom'].set_visible(False)
+ax1.spines['left'].set_visible(False)
+ax2.spines['top'].set_visible(False)
+ax2.spines['right'].set_visible(False)
+ax2.spines['bottom'].set_visible(False)
+ax2.spines['left'].set_visible(False)
+
+# Add text box
+stats_text = f'Sharpe Ratio: {sharpe_ratio} :\n'
+stats_text += f'Maximum Drawdown: {round(maxDrawdown*100,2)}% \n'
+stats_text += f'Start day Drawdown: {startDrawdownDay} day \n'
+stats_text += f"Drawdown Duration: {int(maxDrawdownDuration)} days \n"
+stats_text += f"Average Yearly Return: {round(mean_ret*100, 2)} % \n"
+stats_text += f"Average Yearly STD: {round(std*100, 2)} % \n"
+fig.text(0.1, 0.03, stats_text, fontsize=12,
+         verticalalignment='top', horizontalalignment='left',
+         bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
+
+
+
+
+
+save = False
+if save is True:
+    plt.savefig(f"Green- Red Bar Prediction/Backtest_{ticker}_hk{half_kelly}_V2", bbox_inches='tight')
+
+plt.show()
 
 import matplotlib.pyplot as plt 
 plt.figure(figsize = (10,7))
@@ -277,7 +366,7 @@ plt.ylabel("USD")
 
 
 
-acc = (df['labels'] == df['predictions']).sum() / df.shape[1]
+acc = (df1['labels'] == df1['predictions']).sum() / df.shape[1]
 
 
 
