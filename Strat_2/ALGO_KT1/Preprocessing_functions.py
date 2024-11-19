@@ -436,7 +436,7 @@ def kelly_criterion(ticker,
     
     df = df[df.index <= pd.to_datetime(date_to)]
     df = df[df.index >= pd.to_datetime(date_from)]
-    
+    #print(df)
 
     df['ret'] = round(df['Close'].pct_change(), 6)
     mean_ret = df["ret"].mean()

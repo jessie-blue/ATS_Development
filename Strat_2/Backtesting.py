@@ -25,7 +25,7 @@ from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
 from techinical_analysis import * 
 
-ticker = "SPY"
+ticker = "XLU"
 time_period = "360mo"
 
 ### LOAD FEAT LIST TO ORDER THE DATA ###
@@ -231,7 +231,18 @@ for date, row in df1.iterrows():
     
     #print(date, row)
     print(date)
-    half_kelly = pf.kelly_criterion(ticker, date, period = "360mo") / 2 
+    
+    # Choose half kelly ON or OFF
+    # FOR ON
+    
+    try:
+        half_kelly = pf.kelly_criterion(ticker, date, period = "360mo") / 2 
+    # FOR OFF
+    except ValueError:
+        half_kelly = 1
+        print(f"{ticker}: Value Error: Symbol may be delisted")
+        print(f"You may have hit a limit on the number of API calls!")
+    
     row['half_kelly'] = half_kelly
     row['shares'] = (start_capital * half_kelly) // row['Open'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
     row['pnl'] = (row['Open'] - row['Close']) * row['shares'] if row['predictions'] == 0 else (row['Close'] - row['Open']) * row['shares']
