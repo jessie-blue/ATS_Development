@@ -22,15 +22,34 @@ from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
 from techinical_analysis import * 
 
-ticker = "XLU"
+ticker = 'UUP'
 
-df = pf.downlaod_symbol_data(ticker)
+if ticker != 'BTC-USD':
+
+    df = pf.downlaod_symbol_data(ticker)
+
+else:
+    
+    try:
+        df = pd.read_csv('Strat_2/data/BTC-USD/BTCUSD_15.csv')
+    except FileNotFoundError:
+        df = pd.read_csv('data/BTC-USD/BTCUSD_15.csv')
+    
+    del df['Timestamp'], df['datetime.1']
+    df = df.rename(columns={'datetime' : 'Date'})
+    df = df.set_index('Date')
+
 df = pf.create_momentum_feat(df, ticker)
 df = pf.technical_indicators(df).dropna()
-df = reversal_patterns(df)
-df = continuation_patterns(df)
-df = magic_doji(df)
-df = pf.format_idx_date(df)
+#df = reversal_patterns(df)
+#df = continuation_patterns(df)
+#df = magic_doji(df)
+
+if ticker != 'BTC-USD':
+    df = pf.format_idx_date(df)
+    
+else: 
+    df.index = pd.to_datetime(df.index)
 
 df['labels'] = ((df['Close'] - df['Open']) >= 0).astype(int) 
 df['open_high'] = df['open_high'] * (-1)
@@ -47,7 +66,7 @@ red_day_stats.columns = ['open_close_red', "open_high_red", "open_low_red"]
 stats = green_day_stats.merge(red_day_stats, left_index = True, right_index = True)
 
 DATE = datetime.today().strftime('%Y%m%d%H%M')
-MODEL_PATH = Path(f"Strat_2/stats/{ticker}")
+MODEL_PATH = Path(f"stats/{ticker}")
 MODEL_PATH.mkdir(parents = True, exist_ok = True)
 FILENAME = f"{ticker}_stats_{DATE}.csv"
 if FILENAME not in os.listdir(MODEL_PATH):
@@ -68,13 +87,19 @@ end_date = df1.index.max()
 seq_length =  1
 test_size_pct = 0.30
 
+#df1['last_day'] = (df1.index == end_date).astype(int)
 df1 = df1.sort_index(ascending = False)
-
 
 ### make a directory of the symbol if not there 
 MODEL_PATH = Path(f"data/{ticker}")
 MODEL_PATH.mkdir(parents = True, exist_ok = True)
-df1.to_parquet(f"Strat_2/data/{ticker}/DF_{end_date.strftime('%Y_%m_%d')}.parquet")
+try:
+    df1.to_parquet(f"Strat_2/data/{ticker}/DF_{end_date.strftime('%Y_%m_%d')}.parquet")
+
+except FileNotFoundError:
+    df1.to_parquet(f"data/{ticker}/DF_{end_date.strftime('%Y_%m_%d')}.parquet")
+except OSError:
+    df1.to_parquet(f"data/{ticker}/DF_{end_date.strftime('%Y_%m_%d')}.parquet")
 
 model_feat = pd.DataFrame(list(df1.columns))
 
@@ -89,6 +114,12 @@ train_size = X.shape[0] - test_size
 X_train, y_train = X[:train_size], y[:train_size]
 X_test, y_test = X[train_size:], y[train_size:]
 
+# Get dates FROM/TO for training dataset 
+train_start_date = df1.head(train_size).index.min()
+train_end_date = df1.head(train_size).index.max()
+
+print("Start date of Training Data: ", train_start_date)
+print("End date of Training Data: ", train_end_date)
 
 # Convert data to PyTorch tensors AND CHECK DIMENSIONS OF TENSOR AND CHECK THE REQUIRED INPUT FOR LSTM 
 X_train_tensor = torch.from_numpy(X_train).type(torch.float)#.unsqueeze(1)
@@ -192,7 +223,7 @@ for epoch in range(epochs):
     
     avg_loss = running_loss / len(train_loader) # batch_index
     avg_acc = acc / len(train_loader) #batch_index
-
+    #break
     #print(f"Epoch: {epoch}, Loss: {avg_loss:.4f}, Accuracy: {avg_acc:.2f} ")
 
     ### Testing
@@ -216,7 +247,7 @@ for epoch in range(epochs):
         test_loss /= len(test_loader)
         test_acc  /= len(test_loader)
     
-        if test_acc > best_test_accuracy or best_avg_acc > avg_acc:
+        if test_acc > best_test_accuracy: #or best_avg_acc > avg_acc: # reverse the second condition
             #if test_acc >= 0.68 and best_avg_acc >= 0.68:
             # UPDATE BEST MODEL
             best_test_accuracy = test_acc
@@ -224,7 +255,7 @@ for epoch in range(epochs):
             
             # CREATE MODELS DIRECTORY 
             DATE = datetime.today().strftime('%Y%m%d%H%M')
-            MODEL_PATH = Path(f"Strat_2/lstm_models/{ticker}")
+            MODEL_PATH = Path(f"lstm_models/{ticker}")
             MODEL_PATH.mkdir(parents = True, exist_ok = True)
             
             # CREATE MODEL SAVE PATH
@@ -232,7 +263,7 @@ for epoch in range(epochs):
             MODEL_SAVE_PATH = MODEL_PATH / MODEL_NAME
             
             # SAVE THE INPUT FEATURES OF THE MODEL
-            FEAT_PATH = Path(f"Strat_2/model_features/{ticker}")
+            FEAT_PATH = Path(f"model_features/{ticker}")
             FEAT_PATH.mkdir(parents= True, exist_ok= True)
             FEAT_NAME = f"LSTM_{DATE}_NFEAT{model_feat.shape[0]}.csv"
             if FEAT_NAME not in os.listdir(FEAT_PATH):
@@ -243,7 +274,7 @@ for epoch in range(epochs):
             print(f"Saving model to: {MODEL_SAVE_PATH}")
             torch.save(obj = model.state_dict(), f = MODEL_SAVE_PATH)
 
-    #results.update({epoch, [avg_acc, test_acc]})
+    results[epoch]  = [(avg_acc, test_acc)]
     #print(f"Epoch: {epoch}, Loss: {avg_loss:.4f}, Accuracy: {avg_acc:.2f} ")
     print(f"Epoch: {epoch}, Train Loss: {avg_loss:.4f}, Train Acc: {avg_acc:.2f}, Test Loss: {test_loss:.4f}, Test Accuracy: {test_acc:.2f}" )
 
@@ -252,8 +283,23 @@ for epoch in range(epochs):
     
 
 
+### plot training 
+res = pd.DataFrame(results.values())
+res.columns = ['tuple']
+
+res['train_acc'] = res['tuple'].apply(lambda x : x[0])
+res['test_acc'] = res['tuple'].apply(lambda x : x[0])
+
+del res['tuple']
+res.index = results.keys()
 
 
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10,7))
+plt.plot(res['train_acc'], res['test_acc'])
+plt.xlabel('Training Accuracy')
+plt.ylabel('Test Accuracy')
 
 #y_test[52].value_counts()
 #y_test['labels'].value_counts()

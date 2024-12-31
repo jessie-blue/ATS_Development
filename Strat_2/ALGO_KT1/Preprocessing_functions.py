@@ -87,6 +87,13 @@ def create_momentum_feat(df, symbol):
     
     return df 
 
+def add_lags(dataframe, feature_name, n_lags = 5):
+    
+    for lag in range(1,n_lags+1,1):
+    
+        dataframe[f"{feature_name}_{lag}"] = dataframe[feature_name].shift(lag)
+        
+    return dataframe
 
 def dist_stats(data, col):
     """
@@ -421,8 +428,8 @@ def accuracy_fn(y_true, y_pred):
 
 
 # from datetime import date 
-
-def kelly_criterion(ticker, 
+# wrong kelly calculation 
+def kelly_criterion_wrong(ticker, 
                     date_to = date.today(), 
                     period = "240mo"):
     
@@ -449,29 +456,63 @@ def kelly_criterion(ticker,
     
     print(f"Kelly Calculation window: From: {df.index.min()} To: {df.index.max()}")
     return round(abs(kelly) , 2)
+
+
+def kelly_criterion(ticker, 
+                    date_to = date.today(), 
+                    period = "120mo"):
+    
+    from dateutil.relativedelta import relativedelta
+    import datetime    
+    #ticker = 'AMLP'
+    df = pd.read_csv(f'strat_returns/{ticker}.csv', header = 0, names = ['date', 'daily_ret'])
+    df.date = pd.to_datetime(df.date)
+    date_to = pd.to_datetime(date_to)    
+    date_from = pd.to_datetime(date_to) - relativedelta(months=6)
+    
+    df = df[df.date <= date_to]
+    df = df[df.date >= pd.to_datetime(date_from)]
+
+    mean_ret = df["daily_ret"].mean()
+    std = df["daily_ret"].std() 
+    
+    kelly = mean_ret / std**2
+    
+    if abs(kelly) > 8:
+        kelly = 8
+        
+    # if abs(kelly) < 1 :
+    #     kelly = 1
+    df = df.set_index('date')
+    print(f"Kelly Calculation window: From: {df.index.min()} To: {df.index.max()}")
+    return round(abs(kelly) , 2)
     
 
 
-def technical_indicators(df):
+def technical_indicators(df, MA_DIVERGENCE = False):
     import ta 
-    
-    ### TA indicators 
-    for days in [8, 25,50,100, 200]:
-        df[f"MA_{days}"] = ta.trend.sma_indicator(df['Close'], window = days)
         
     df['ATR'] = ta.volatility.average_true_range(df['High'], df['Low'], df['Close'], window=14)
     df['MACD'] = ta.trend.macd_diff(df['Close'])
     
-    ### Convert prices into useful indicators 
-    df['diff_8_50'] =  df['MA_8'] - df['MA_50']
-    df['diff_50_100'] = df['MA_50'] - df['MA_100']
-    df['diff_50_200'] = df['MA_50'] - df['MA_200']
-    
-    for n in [8, 25,50,100, 200]:
-        df[f'diff_Close_{n}'] = df['Close'] - df[f'MA_{n}']
+    if MA_DIVERGENCE == True:
         
-    for days in [8, 25,50,100, 200]:
-        del df[f"MA_{days}"]
+        ### TA indicators 
+        for days in [8, 25,50,100, 200]:
+            df[f"MA_{days}"] = ta.trend.sma_indicator(df['Close'], window = days)
+            #print('Create MAs: DONE')
+            
+        for n in [8, 25,50,100, 200]:
+            df[f'diff_Close_{n}'] = df['Close'] - df[f'MA_{n}']
+            #print('Debug 1')
+        ### Convert prices into useful indicators 
+        df['diff_8_50'] =  df['MA_8'] - df['MA_50']
+        df['diff_50_100'] = df['MA_50'] - df['MA_100']
+        df['diff_50_200'] = df['MA_50'] - df['MA_200']
+        
+        for days in [8, 25,50,100, 200]:
+            del df[f"MA_{days}"]
+            #print('Deletion Done')
     return df 
 
 

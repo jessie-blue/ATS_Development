@@ -1,6 +1,6 @@
 strategy,starting_capital,symbol,annual_return,std,sr,max_dd,dd_duration,current_capital,status
-Short_Open,10000,XLU,22.49,26.58,0.84,-55.2,1006,9052.13,active
-Short_Open,10000,SPY,19.82,12.46,1.59,-16.04,505,14536.08,active
-Short_Open,10000,AMLP,77.27,41.41,1.87,-56.7,492,9719.42,active
-Short_Open,10000,XLI,99.0,99.0,99.0,99.0,99,10707.82,discontinued
-Short_Open,10000,USO,99.0,99.0,99.0,99.0,99,10229.48,discontinued
+Short_Open,10000,XLU,22.49,26.58,0.84,-55.2,1006,9330.43,active
+Short_Open,10000,SPY,19.82,12.46,1.59,-16.04,505,14926.11,active
+Short_Open,10000,AMLP,77.27,41.41,1.87,-56.7,492,9915.03,active
+Short_Open,10000,XLI,99.0,99.0,99.0,99.0,99,10999.8,discontinued
+Short_Open,10000,USO,99.0,99.0,99.0,99.0,99,10728.13,discontinued

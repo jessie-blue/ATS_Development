@@ -13,7 +13,8 @@ from Preprocessing_functions import downlaod_symbol_data
 
 date = datetime.today().strftime('%Y_%m_%d')
 
-FILE_PATH = os.getcwd() + "/orders/"
+#FILE_PATH = os.getcwd() + "/orders/"
+FILE_PATH = 'c:/Users/User/Downloads/ATS_Development/orders/'
 FILENAME = "Orders_" + date + ".csv"
 
 orders = pd.read_csv(FILE_PATH + FILENAME)

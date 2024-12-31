@@ -25,7 +25,7 @@ from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
 from techinical_analysis import * 
 
-ticker = "XLU"
+ticker = "UUP"
 time_period = "360mo"
 
 ### LOAD FEAT LIST TO ORDER THE DATA ###
@@ -62,13 +62,31 @@ del FEAT_PATH, idx, DF_PATH, FEAT_NAME, directory
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-df = pf.downlaod_symbol_data(ticker, period = time_period)
+if ticker != 'BTC-USD':
+    df = pf.downlaod_symbol_data(ticker, period = time_period)
+
+else:
+    try:
+        df = pd.read_csv('Strat_2/data/BTC-USD/BTCUSD_15.csv', index_col='datetime')
+
+    except FileNotFoundError:
+        df = pd.read_csv('data/BTC-USD/BTCUSD_15.csv', index_col='datetime')
+
 df = pf.create_momentum_feat(df, ticker)
-df = pf.technical_indicators(df).dropna()
+df = pf.technical_indicators(df, MA_DIVERGENCE = True).dropna()
 df = reversal_patterns(df)
 df = continuation_patterns(df)
 df = magic_doji(df)
-df = pf.format_idx_date(df)
+
+if ticker != 'BTC-USD':
+    df = pf.format_idx_date(df)
+    
+else: 
+    df.index = pd.to_datetime(df.index)
+    df = df.reset_index()
+    df['Date'] = df['datetime']
+    df = df.set_index('Date')
+    del df['datetime']
 
 # REMOVE DATA SNOOPING 
 out_sample = True
@@ -76,9 +94,14 @@ out_sample = True
 if out_sample is True:
     start_date = df_dates.index.min()
     df = df[df.index <= start_date]
+    ## Manually set the dates
     #df = df[df.index >= '2010-01-01']
     
-    del DF_NAME, df_dates 
+    del DF_NAME, df_dates
+    
+     
+## Manually set the dates for the backtest time window 
+#df = df[df.index <= '2019-01-01']
 
 
 seq_length =  1
@@ -90,10 +113,13 @@ df = df.sort_index(ascending = False)
 df['labels'] = ((df['Close'] - df['Open']) >= 0).astype(int) 
 
 # preserve the price features to use in the backtest data
-drop_cols = ['Open', 'High', 'Low', 'Close', 'Stock Splits']
-df1 = df[drop_cols]
-
-
+try:
+    drop_cols = ['Open', 'High', 'Low', 'Close', 'Stock Splits']
+    df1 = df[drop_cols]
+except KeyError:
+    drop_cols = ['Open', 'High', 'Low', 'Close']
+    df1 = df[drop_cols]
+    
 
 df = df[MODEL_FEAT]
 df_model = df.copy()
@@ -115,7 +141,6 @@ del y
 
 
 ############################ PREDICTION #######################################
-
 
 X_tensor = torch.from_numpy(X).type(torch.float).to(device).squeeze(0)
 
@@ -157,11 +182,8 @@ del pred, output, predictions
 ACC = (df1['labels'] == df1['predictions']).sum() / df1.shape[1]
 
 ######## INFER HIGH OR LOW WAS FIRST ######
-### NOT SURE WE NEED THIS 
-#df1['low_first'] = df1['Close'] >= df1['Open']
-#df1['low_last'] = df1['Close'] <= df1['Open'] 
-
-#df1['labels'] = (df1['Close'] > df1['Open']).astype(int)
+predictions_dist = df1.predictions.value_counts()
+print('Value counts of the prediction classes: ', predictions_dist)
 
 ######## BACKTESTING #########
 
@@ -179,53 +201,20 @@ TC = 3
 
 start_capital = 1e4
 df = pd.DataFrame()
-half_kelly = pf.kelly_criterion(ticker, df1.index.min(), period = "360mo") / 2 
 
-# for date, row in df1.iterrows():
-    
-#     print(date, row)
-#     half_kelly = pf.kelly_criterion(ticker, date, period = "360mo") / 2 
-    
-#     row['half_kelly'] = half_kelly
-#     row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
-#     row['return'] = row['Close'] / row['Open'] - 1 
-#     row['pnl'] = np.where(row['predictions'] == 1, round(start_capital* half_kelly * row['return'], 2), 0).astype("float64")
-#     row['eod_capital'] = start_capital + row['pnl'].item()
-    
-#     start_capital = row['eod_capital']
-    
-#     row = row.to_frame()
+try:
 
-#     df = pd.concat([df, row], axis =1)
-#     # break 
-#    # df['date'] = date
+    half_kelly = pf.kelly_criterion(ticker, df1.index.min(), period = "360mo") / 2 
 
+except FileNotFoundError:
+    
+    print('No returns data for this strategy')
+    print('Setting: half kelly criterion = 1' )
+    
+    half_kelly = 1
+    
 
-
-# for date, row in df1.iterrows():
-    
-#     print(date, row)
-#     half_kelly = pf.kelly_criterion(ticker, date, period = "360mo") / 2 
-    
-#     row['half_kelly'] = half_kelly
-#     row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
-#     # row['return'] = row['Close'] / row['Open'] - 1 
-    
-#     row['pnl_green'] = start_capital * stats.loc['median', 'open_high_green'] / 100 if row['predictions'] == 0 and row['low_last'] else start_capital * stats.loc['median', 'open_low_green']  
-#     row['pnl_0'] = start_capital * stats.loc['median', 'open_high_red'] / 100 if row['predictions'] == 1 and row['low_last'] else start_capital * stats.loc['median', 'open_low_red']  
-    
-#     row['pnl'] = np.where(row['predictions'] == 1, round(start_capital* half_kelly * row['return'], 2), 0).astype("float64")
-#     row['eod_capital'] = start_capital + row['pnl'].item()
-    
-#     start_capital = row['eod_capital']
-    
-#     row = row.to_frame()
-
-#     df = pd.concat([df, row], axis =1)
-#     # break 
-#    # df['date'] = date
 end_date_for_test = df1.head(200).index.max()
-
 
 for date, row in df1.iterrows():
     
@@ -234,15 +223,16 @@ for date, row in df1.iterrows():
     
     # Choose half kelly ON or OFF
     # FOR ON
-    
     try:
-        half_kelly = pf.kelly_criterion(ticker, date, period = "360mo") / 2 
+        #half_kelly = pf.kelly_criterion(ticker, date, period = "360mo") / 2  #CALCULATION NEEDS TO BE FIXED 
+        half_kelly = 1
     # FOR OFF
     except ValueError:
         half_kelly = 1
         print(f"{ticker}: Value Error: Symbol may be delisted")
         print(f"You may have hit a limit on the number of API calls!")
     
+    # Calculate position size and pnl 
     row['half_kelly'] = half_kelly
     row['shares'] = (start_capital * half_kelly) // row['Open'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
     row['pnl'] = (row['Open'] - row['Close']) * row['shares'] if row['predictions'] == 0 else (row['Close'] - row['Open']) * row['shares']
@@ -250,11 +240,9 @@ for date, row in df1.iterrows():
     
     # Capital adjustments 
     row['eod_capital'] = start_capital + row['pnl'].item()
-    
     row['eod_equity'] = start_capital + row['pnl']
     row['daily_ret'] = row['eod_equity'] / start_capital - 1
     start_capital = row['eod_capital']
-    
     
     # Add the row to the new df 
     row = row.to_frame()
@@ -263,26 +251,10 @@ for date, row in df1.iterrows():
     ### only for testing 
     #if date == end_date_for_test:
     #    break
-    
-    # LEGACY CODE 
-    #row['return'] = row['Close'] / row['Open'] - 1 
-    #capital = start_capital * half_kelly
-    #row['usd_return'] = row['return'] * capital
-    
-    #row['pnl'] = np.where(row['predictions'] == 1, row['usd_return']*(-1), row['usd_return'])
-    #row['eod_capital'] = start_capital + row['pnl'].item()
-    
-    #start_capital = row['eod_capital']
-    
-    #row = row.to_frame()
 
-    #df = pd.concat([df, row], axis =1)
-    
-    
-    # break 
-   # df['date'] = date
-
-
+###########################
+### Reformating the Loop DF
+###########################
 
 df = df.transpose()
 #df = df.infer_objects()
@@ -359,13 +331,9 @@ fig.text(0.1, 0.03, stats_text, fontsize=12,
          verticalalignment='top', horizontalalignment='left',
          bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
 
-
-
-
-
-save = False
+save = True
 if save is True:
-    plt.savefig(f"Green- Red Bar Prediction/Backtest_{ticker}_hk{half_kelly}_V2", bbox_inches='tight')
+    plt.savefig(f"Green_Red Bar Prediction_Backtest_{ticker}_hk{half_kelly}=1_V2", bbox_inches='tight')
 
 plt.show()
 

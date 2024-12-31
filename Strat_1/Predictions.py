@@ -58,7 +58,7 @@ for ticker in tickers:
     # =============================================================================
     ### LOAD KMEANS MODEL ###
     KMEANS_PATH = f"kmeans_models/{ticker}/"
-    print(os.listdir(KMEANS_PATH))
+    print('Choose a file for clustering: ',os.listdir(KMEANS_PATH))
     idx = 0 if len(os.listdir(KMEANS_PATH)) < 2 else int(input("Select file index: "))
     KMEANS_NAME = os.listdir(KMEANS_PATH)[idx]
     print("Chosen K_MEANS MODEL file: ", KMEANS_NAME)
@@ -77,7 +77,7 @@ for ticker in tickers:
     # =============================================================================
     ### LOAD FEAT LIST TO ORDER THE DATA ###
     FEAT_PATH = f"model_features/{ticker}/"
-    print(os.listdir(FEAT_PATH))
+    print('Choose a features list to use:',os.listdir(FEAT_PATH))
     idx = 0 if len(os.listdir(FEAT_PATH)) < 2 else int(input("Select file index (e.g. 0,1,2)"))
     FEAT_NAME = os.listdir(FEAT_PATH)[idx]
     print('Selected Feature list: ', FEAT_NAME)
@@ -106,7 +106,7 @@ for ticker in tickers:
     
     # LOAD LSTM MODEL STATE DICT  
     MODEL_PATH = f"lstm_models/{ticker}/"
-    print(os.listdir(MODEL_PATH))
+    print('Choose LSTM Model: ',os.listdir(MODEL_PATH))
     idx = 0 if len(os.listdir(MODEL_PATH)) < 2 else int(input("Select file index: "))
     MODEL_NAME = os.listdir(MODEL_PATH)[idx]
     print("Chosen LSTM, MODEL file: ", MODEL_NAME)
@@ -184,8 +184,8 @@ for ticker in tickers:
     last_price = df['Close'].iloc[-1]
     capital = strats['current_capital'].item()
     half_kelly = kelly / 2
-    if half_kelly < 1:
-        half_kelly = 1 
+    #if half_kelly < 1: removed this on 27.11.2024 to allow for less size to be used
+    #    half_kelly = 1 
     bp_used = round(capital * half_kelly,2)
     n_shares = int(bp_used // last_price) 
     open_position_price = 'at_open'
