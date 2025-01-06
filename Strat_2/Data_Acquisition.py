@@ -22,7 +22,7 @@ from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
 from techinical_analysis import * 
 
-ticker = 'UUP'
+ticker = 'XLE'
 
 if ticker != 'BTC-USD':
 
@@ -41,9 +41,10 @@ else:
 
 df = pf.create_momentum_feat(df, ticker)
 df = pf.technical_indicators(df).dropna()
-#df = reversal_patterns(df)
-#df = continuation_patterns(df)
-#df = magic_doji(df)
+df = reversal_patterns(df)
+df = continuation_patterns(df)
+df = magic_doji(df)
+df = pf.add_market_feature('SPY', data = df, time_period = '120mo')
 
 if ticker != 'BTC-USD':
     df = pf.format_idx_date(df)

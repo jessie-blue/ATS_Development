@@ -175,11 +175,12 @@ for ticker in tickers:
     strats_path = cwd.replace("Strat_1", "")
     strats = pd.read_csv(strats_path + "/strategies.csv")
     
+    strats = strats[strats['strategy_name'] == 'Strat_1']
     strats = strats[strats['symbol'] == ticker]
     
     kelly = kelly_criterion(ticker, period = "6mo")
     
-    strat = 'Short_Open'
+    strat = 'Strat_1' # this was changes from 'Short_Open' in case smtng breaks
     symbol = ticker
     last_price = df['Close'].iloc[-1]
     capital = strats['current_capital'].item()

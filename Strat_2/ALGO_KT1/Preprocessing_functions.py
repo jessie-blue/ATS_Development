@@ -516,7 +516,13 @@ def technical_indicators(df, MA_DIVERGENCE = False):
     return df 
 
 
-
+def add_market_feature(symbol, time_period, data):
+    from ALGO_KT1 import Preprocessing_functions as pf 
+    feature = pf.downlaod_symbol_data(symbol, period=time_period)
+    feature[f'{symbol}_return'] = feature['Close'].pct_change() 
+    feature = feature[[f'{symbol}_return']]
+    data = data.merge(feature, left_index = True, right_index = True, how='left')
+    return data
 
 
 

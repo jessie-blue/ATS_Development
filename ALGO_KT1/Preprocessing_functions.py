@@ -422,7 +422,7 @@ def accuracy_fn(y_true, y_pred):
 
 from datetime import date 
 
-def kelly_criterion(ticker, 
+def kelly_criterion_wrong(ticker, 
                     date_to = date.today(), 
                     period = "240mo"):
     
@@ -452,6 +452,36 @@ def kelly_criterion(ticker,
     
 
 
+
+def kelly_criterion(ticker, 
+                    date_to = date.today(), 
+                    period = "120mo"):
+    
+    from dateutil.relativedelta import relativedelta
+    import datetime    
+    #ticker = 'AMLP'
+    df = pd.read_csv(f'strat_returns/{ticker}.csv', header = 0, names = ['date', 'daily_ret'])
+    df.date = pd.to_datetime(df.date)
+    date_to = pd.to_datetime(date_to)    
+    date_from = pd.to_datetime(date_to) - relativedelta(months=6)
+    
+    df = df[df.date <= date_to]
+    df = df[df.date >= pd.to_datetime(date_from)]
+
+    mean_ret = df["daily_ret"].mean()
+    std = df["daily_ret"].std() 
+    
+    kelly = mean_ret / std**2
+    
+    if abs(kelly) > 8:
+        kelly = 8
+        
+    # if abs(kelly) < 1 :
+    #     kelly = 1
+    df = df.set_index('date')
+    print(f"Kelly Calculation window: From: {df.index.min()} To: {df.index.max()}")
+    return round(abs(kelly) , 2)
+    
 
 
 

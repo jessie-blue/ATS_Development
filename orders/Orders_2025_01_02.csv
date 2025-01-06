@@ -1,0 +1,7 @@
+strat,ticker,direction,last_close_price,capital,half_kelly,bp_used,n_shares,open_position,target_price,expected_return,stop_price
+Short_Open,XLU,SELL,75.69,9360.8,0.365,3416.69,45,at_open,0.993,0.007,at_close
+Short_Open,USO,SELL,75.55,10655.9,1.485,15824.01,209,at_open,0.971905,0.028095,at_close
+Short_Open,XLI,SELL,131.76,11126.34,3.22,35826.81,271,at_open,0.981627,0.018373,at_close
+Short_Open,AMLP,SELL,48.16,9870.53,1.96,19346.24,401,at_open,0.99251,0.00749,at_close
+Short_Open,SPY,SELL,586.08,30000.0,4.0,120000.0,204,at_open,0.996044,0.003956,at_close
+Strat_2,SPY,BUY,586.08,100000.0,4.0,400000.0,682,at_open,at_close,0.38,at_close

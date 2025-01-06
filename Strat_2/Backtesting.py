@@ -25,7 +25,7 @@ from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
 from techinical_analysis import * 
 
-ticker = "UUP"
+ticker = "XLE"
 time_period = "360mo"
 
 ### LOAD FEAT LIST TO ORDER THE DATA ###
@@ -77,6 +77,7 @@ df = pf.technical_indicators(df, MA_DIVERGENCE = True).dropna()
 df = reversal_patterns(df)
 df = continuation_patterns(df)
 df = magic_doji(df)
+df = pf.add_market_feature('SPY', data = df, time_period = '120mo')
 
 if ticker != 'BTC-USD':
     df = pf.format_idx_date(df)
@@ -197,7 +198,7 @@ df1 = df1.sort_index()
 
 df1 = df1.sort_index(ascending = True)
 
-TC = 3 
+TC = 3
 
 start_capital = 1e4
 df = pd.DataFrame()
@@ -236,7 +237,7 @@ for date, row in df1.iterrows():
     row['half_kelly'] = half_kelly
     row['shares'] = (start_capital * half_kelly) // row['Open'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
     row['pnl'] = (row['Open'] - row['Close']) * row['shares'] if row['predictions'] == 0 else (row['Close'] - row['Open']) * row['shares']
-    row['pnl'] -= 3 
+    row['pnl'] -= TC
     
     # Capital adjustments 
     row['eod_capital'] = start_capital + row['pnl'].item()

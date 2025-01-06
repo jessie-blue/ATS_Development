@@ -36,13 +36,15 @@ def strat_perfomance(ticker, df):
     
     cum_sum = df1.pnl.cumsum()
     
-    plt.figure(figsize = (10,7))
+    plt.figure(figsize = (20,14))
     plt.plot(df1.date, df1['eod_capital'], color = "b")
     #plt.plot(df1.date, cum_sum, color = "b")
     plt.title(f"{strategy}, {ticker}, Equity Curve")
     plt.xlabel("Date")
+    plt.xticks(rotation = 90)
+    plt.xticks(fontsize=9, fontname='Arial')
     plt.ylabel("USD")
-
+    plt.yticks(fontsize=13, fontname='Arial')
 
 
 

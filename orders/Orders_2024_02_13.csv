@@ -4,3 +4,5 @@ Short_Open,USO,HOLD,72.11,10367.74,1.0,10367.74,143,at_open,0.994494,0.005506,at
 Short_Open,XLI,SELL,117.12,9509.76,4.0,38039.04,324,at_open,0.994031,0.005969,at_close
 Short_Open,AMLP,SELL,43.84,9760.2,4.0,39040.8,890,at_open,0.99251,0.00749,at_close
 Short_Open,SPY,HOLD,500.98,9763.85,4.0,39055.4,77,at_open,0.998378,0.001622,at_close
+Strat_2,SPY,BUY,494.64,15162.3,4.0,121298.4,245,at_open,at_close,0.38,at_close
+Strat_2,SPY,BUY,494.64,15162.3,4.0,121298.4,245,at_open,at_close,0.38,at_close
