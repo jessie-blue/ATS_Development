@@ -18,6 +18,7 @@ FILE_PATH = 'c:/Users/User/Documents/ATS_Development/orders/'
 FILENAME = "Orders_" + date + ".csv"
 
 orders = pd.read_csv(FILE_PATH + FILENAME)
+orders = orders[orders['strat'] == 'Strat_1']
 orders = orders[orders['direction'] == 'SELL']
 tickers = list(orders['ticker'])
 orders['target_price'] = orders['target_price'].astype(float)

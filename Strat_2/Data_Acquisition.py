@@ -9,7 +9,6 @@ import os
 from datetime import datetime
 
 directory = os.getcwd().replace("\\", "/")
-#directory = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/Strat_2"
 os.chdir(directory)
 import pandas as pd 
 import torch

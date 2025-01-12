@@ -87,8 +87,9 @@ del FEAT_PATH, idx, FEAT_NAME, MODEL_FEAT, end_date, y, X
 
 # LOAD LSTM MODEL STATE DICT  
 MODEL_PATH = f"lstm_models/{ticker}/"
-print(os.listdir(MODEL_PATH))
-idx = 0 if len(os.listdir(MODEL_PATH)) < 2 else int(input("Select file index: "))
+lstm_files = os.listdir(MODEL_PATH)
+print(lstm_files)
+idx = 0 if len(lstm_files) < 2 else int(input("Select file index: "))
 MODEL_NAME = os.listdir(MODEL_PATH)[idx]
 print("Chosen LSTM, MODEL file: ", MODEL_NAME)
 
@@ -137,9 +138,8 @@ capital = capital[capital['symbol'] == ticker]
 capital = capital['current_capital'].item()
 
 kelly = pf.kelly_criterion(ticker, period='6mo', date_to=df.index.max()) / 2
-bp_used = capital * kelly
+bp_used = round(capital * kelly, 2)
 last_close_price = df['Close'].iloc[-1]
-print(last_close_price)
 n_shares = int(bp_used // last_close_price) 
 open_position_price = 'at_open'
 target_price = 'at_close'
@@ -160,7 +160,7 @@ orders = {
         "ticker" : ticker,
         "direction" : action, # Feed that from the predictions script 
         "last_close_price" : df['Close'].iloc[-1],
-        "capital" : capital, # to be determined by a portfolio optimization engine
+        "capital" : round(capital, 2), # to be determined by a portfolio optimization engine
         "half_kelly" : kelly,
         "bp_used" : bp_used,
         "n_shares" : n_shares ,

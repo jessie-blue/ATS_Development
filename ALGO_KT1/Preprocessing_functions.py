@@ -483,7 +483,40 @@ def kelly_criterion(ticker,
     return round(abs(kelly) , 2)
     
 
+def technical_indicators(df, MA_DIVERGENCE = False):
+    import ta 
+        
+    df['ATR'] = ta.volatility.average_true_range(df['High'], df['Low'], df['Close'], window=14)
+    df['MACD'] = ta.trend.macd_diff(df['Close'])
+    
+    if MA_DIVERGENCE == True:
+        
+        ### TA indicators 
+        for days in [8, 25,50,100, 200]:
+            df[f"MA_{days}"] = ta.trend.sma_indicator(df['Close'], window = days)
+            #print('Create MAs: DONE')
+            
+        for n in [8, 25,50,100, 200]:
+            df[f'diff_Close_{n}'] = df['Close'] - df[f'MA_{n}']
+            #print('Debug 1')
+        ### Convert prices into useful indicators 
+        df['diff_8_50'] =  df['MA_8'] - df['MA_50']
+        df['diff_50_100'] = df['MA_50'] - df['MA_100']
+        df['diff_50_200'] = df['MA_50'] - df['MA_200']
+        
+        for days in [8, 25,50,100, 200]:
+            del df[f"MA_{days}"]
+            #print('Deletion Done')
+    return df 
 
+
+def add_market_feature(symbol, time_period, data):
+    from ALGO_KT1 import Preprocessing_functions as pf 
+    feature = pf.downlaod_symbol_data(symbol, period=time_period)
+    feature[f'{symbol}_return'] = feature['Close'].pct_change() 
+    feature = feature[[f'{symbol}_return']]
+    data = data.merge(feature, left_index = True, right_index = True, how='left')
+    return data
 
 
 #d , k  = kelly_criterion("XLU")
