@@ -1,7 +1,7 @@
 strategy_name,strategy,starting_capital,symbol,annual_return,std,sr,max_dd,dd_duration,current_capital,status
-Strat_1,Short_Open,7000,XLU,22.49,26.58,0.84,-55.2,1006.0,7047.66,active
-Strat_1,Short_Open,30000,SPY,19.82,12.46,1.59,-16.04,505.0,30021.95,active
-Strat_1,Short_Open,5000,AMLP,77.27,41.41,1.87,-56.7,492.0,4984.16,active
-Strat_1,Short_Open,10000,XLI,99.0,99.0,99.0,99.0,99.0,10678.16,discontinued
-Strat_1,Short_Open,5000,USO,99.0,99.0,99.0,99.0,99.0,5023.04,discontinued
-Strat_2,Long_Short_Open,100000,SPY,31.0,99.0,99.0,99.0,99.0,97760.73999999999,testing
+Strat_1,Short_Open,7000,XLU,22.49,26.58,0.84,-55.2,1006.0,7050.9,active
+Strat_1,Short_Open,30000,SPY,19.82,12.46,1.59,-16.04,505.0,28840.59,active
+Strat_1,Short_Open,5000,AMLP,77.27,41.41,1.87,-56.7,492.0,4895.26,active
+Strat_1,Short_Open,10000,XLI,99.0,99.0,99.0,99.0,99.0,9946.52,discontinued
+Strat_1,Short_Open,5000,USO,99.0,99.0,99.0,99.0,99.0,4955.36,discontinued
+Strat_2,Long_Short_Open,100000,SPY,31.0,99.0,99.0,99.0,99.0,99491.0,testing

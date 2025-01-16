@@ -11,7 +11,7 @@ from pathlib import Path
 from Preprocessing_functions import *
 from techinical_analysis import *
 
-ticker = "SPY"
+ticker = "QQQ"
 n_clusters = 3
 specific_timeframe = True # usually used to campare against a specific model build 
 save = True # save the data 

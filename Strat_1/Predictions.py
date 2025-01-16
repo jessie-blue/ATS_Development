@@ -58,13 +58,15 @@ for ticker in tickers:
     # =============================================================================
     ### LOAD KMEANS MODEL ###
     KMEANS_PATH = f"kmeans_models/{ticker}/"
-    print('Choose a file for clustering: ',os.listdir(KMEANS_PATH))
-    idx = 0 if len(os.listdir(KMEANS_PATH)) < 2 else int(input("Select file index: "))
-    KMEANS_NAME = os.listdir(KMEANS_PATH)[idx]
+    KMEANS_FILES = os.listdir(KMEANS_PATH)
+    print('Choose a file for clustering: ', KMEANS_FILES)
+    KMEANS_FILES.remove('Junk')
+    idx = 0 if len(KMEANS_FILES) < 2 else int(input("Select file index: "))
+    KMEANS_NAME = KMEANS_FILES[idx]
     print("Chosen K_MEANS MODEL file: ", KMEANS_NAME)
     FILE = KMEANS_PATH + KMEANS_NAME
     loaded_kmeans = joblib.load(FILE)
-    del KMEANS_PATH, KMEANS_NAME, idx, FILE
+    del KMEANS_PATH, KMEANS_NAME, idx, FILE, KMEANS_FILES
     
     ### ASSIGN CLUSTER TO OBSERVATION
     data = df[["open_low", "open_close", "gap"]].dropna()
@@ -77,9 +79,11 @@ for ticker in tickers:
     # =============================================================================
     ### LOAD FEAT LIST TO ORDER THE DATA ###
     FEAT_PATH = f"model_features/{ticker}/"
-    print('Choose a features list to use:',os.listdir(FEAT_PATH))
-    idx = 0 if len(os.listdir(FEAT_PATH)) < 2 else int(input("Select file index (e.g. 0,1,2)"))
-    FEAT_NAME = os.listdir(FEAT_PATH)[idx]
+    FEAT_FILES = os.listdir(FEAT_PATH)
+    FEAT_FILES.remove('Junk')
+    print('Choose a features list to use:', FEAT_FILES)
+    idx = 0 if len(FEAT_FILES) < 2 else int(input("Select file index (e.g. 0,1,2)"))
+    FEAT_NAME = FEAT_FILES[idx]
     print('Selected Feature list: ', FEAT_NAME)
     MODEL_FEAT = pd.read_csv(FEAT_PATH + FEAT_NAME)['0'].to_list()
     
@@ -99,16 +103,18 @@ for ticker in tickers:
     # X = X[0]
     #X_tensor = torch.from_numpy(X[0]).type(torch.float).to(device).unsqueeze(0)
     X_tensor = torch.from_numpy(X).type(torch.float).to(device).squeeze(0)
-    del FEAT_PATH, idx, FEAT_NAME, MODEL_FEAT, end_date, y, X
+    del FEAT_PATH, idx, FEAT_NAME, MODEL_FEAT, end_date, y, X, FEAT_FILES
     # =============================================================================
     # LOAD LSTM MODEL TO PREDICT 
     # =============================================================================
     
     # LOAD LSTM MODEL STATE DICT  
     MODEL_PATH = f"lstm_models/{ticker}/"
-    print('Choose LSTM Model: ',os.listdir(MODEL_PATH))
-    idx = 0 if len(os.listdir(MODEL_PATH)) < 2 else int(input("Select file index: "))
-    MODEL_NAME = os.listdir(MODEL_PATH)[idx]
+    LSTM_FILES = os.listdir(MODEL_PATH)
+    LSTM_FILES.remove('Junk')
+    print('Choose LSTM Model: ', LSTM_FILES)
+    idx = 0 if len(LSTM_FILES) < 2 else int(input("Select file index: "))
+    MODEL_NAME = LSTM_FILES[idx]
     print("Chosen LSTM, MODEL file: ", MODEL_NAME)
     
     input_feat = df_model.shape[1]
@@ -125,7 +131,7 @@ for ticker in tickers:
     
     model.load_state_dict(torch.load(f = MODEL_PATH + MODEL_NAME ))
     
-    del MODEL_PATH, idx, MODEL_NAME
+    del MODEL_PATH, idx, MODEL_NAME, LSTM_FILES
     # PREDICTION 
     model.eval()
     
@@ -137,9 +143,11 @@ for ticker in tickers:
     
     # Cluster stats
     STATS_PATH = f"Data/{ticker}/k_stats/"
-    print("KMEANS Stats files: ", os.listdir(STATS_PATH))
-    idx = 0 if len(os.listdir(STATS_PATH)) < 2 else int(input("Select file index: "))
-    STATS_NAME = os.listdir(STATS_PATH)[idx]
+    STATS_FILES = os.listdir(STATS_PATH)
+    print("KMEANS Stats files: ", STATS_FILES)
+    STATS_FILES.remove('Junk')
+    idx = 0 if len(STATS_FILES) < 2 else int(input("Select file index: "))
+    STATS_NAME = STATS_FILES[idx]
     print("Chosen K_STATS file: ", STATS_NAME)
     cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
     

@@ -18,48 +18,58 @@ from techinical_analysis import *
 ticker = "SPY"
 n_clusters = 3 
 time_period = "360mo" # must be the same as in 1_Data_Acquisition or larger
-V3 = True # choosing LSTM Architecture - advanced with 2 layers
+V3 = False # choosing LSTM Architecture - advanced with 2 layers
 BASE = False if V3 == True else True # only 1 layer 
 
 ### LOAD KMEANS MODEL ###
 KMEANS_PATH = f"kmeans_models/{ticker}/"
-print(os.listdir(KMEANS_PATH))
-idx = 0 if len(os.listdir(KMEANS_PATH)) < 2 else int(input("Select file index: "))
-KMEANS_NAME = os.listdir(KMEANS_PATH)[idx]
+KMEANS_MODEL_PATH = os.listdir(KMEANS_PATH)
+print(KMEANS_MODEL_PATH)
+KMEANS_MODEL_PATH.remove('Junk')
+idx = 0 if len(KMEANS_MODEL_PATH) < 2 else int(input("Select file index: "))
+KMEANS_NAME = KMEANS_MODEL_PATH[idx]
 print("Chosen K_MEANS MODEL file: ", KMEANS_NAME)
 FILE = KMEANS_PATH + KMEANS_NAME
 loaded_kmeans = joblib.load(FILE)
 
 ### LOAD FEAT LIST TO ORDER THE DATA ###
 FEAT_PATH = f"model_features/{ticker}/"
-print(os.listdir(FEAT_PATH))
-idx = 0 if len(os.listdir(FEAT_PATH)) < 2 else int(input("Select file index (e.g. 0,1,2)"))
-FEAT_NAME = os.listdir(FEAT_PATH)[idx]
+FEAT_FILES = os.listdir(FEAT_PATH)
+FEAT_FILES.remove('Junk')
+print(FEAT_FILES)
+idx = 0 if len(FEAT_FILES) < 2 else int(input("Select file index (e.g. 0,1,2)"))
+FEAT_NAME = FEAT_FILES[idx]
 MODEL_FEAT = pd.read_csv(FEAT_PATH + FEAT_NAME)['0'].to_list()
 #MODEL_FEAT.pop(-1)
 
 # Cluster stats
 STATS_PATH = f"Data/{ticker}/k_stats/"
-print("KMEANS Stats files: ", os.listdir(STATS_PATH))
-idx = 0 if len(os.listdir(STATS_PATH)) < 2 else int(input("Select file index: "))
-STATS_NAME = os.listdir(STATS_PATH)[idx]
+STATS_FILES = os.listdir(STATS_PATH)
+STATS_FILES.remove('Junk')
+print("KMEANS Stats files: ", STATS_FILES)
+idx = 0 if len(STATS_FILES) < 2 else int(input("Select file index: "))
+STATS_NAME = STATS_FILES[idx]
 print("Chosen K_STATS file: ", STATS_NAME)
 cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
 
 # LOAD DF FOR MODEL BUILDING TO CHECK DATE RANGES 
 DF_PATH = f"Data/{ticker}/df/"
-print("DataFrame for model building: ", os.listdir(DF_PATH))
-idx = 0 if len(os.listdir(DF_PATH)) < 2 else int(input("Select file index: "))
-DF_NAME = os.listdir(DF_PATH)[idx] 
+DF_FILES = os.listdir(DF_PATH)
+DF_FILES.remove('Junk')
+print("DataFrames for model building: ", DF_FILES)
+idx = 0 if len(DF_FILES) < 2 else int(input("Select file index: "))
+DF_NAME = DF_FILES[idx] 
 print("Chosen DataFrame file: ", DF_NAME)
 df_dates = pd.read_parquet(DF_PATH + DF_NAME)
 df_dates = format_idx_date(df_dates)
 
 # LOAD LSTM MODEL STATE DICT  
 MODEL_PATH = f"lstm_models/{ticker}/"
-print(os.listdir(MODEL_PATH))
-idx = 0 if len(os.listdir(MODEL_PATH)) < 2 else int(input("Select file index: "))
-MODEL_NAME = os.listdir(MODEL_PATH)[idx]
+LSTM_FILES = os.listdir(MODEL_PATH)
+LSTM_FILES.remove('Junk')
+print("LSTM Files: ",LSTM_FILES)
+idx = 0 if len(LSTM_FILES) < 2 else int(input("Select file index: "))
+MODEL_NAME = LSTM_FILES[idx]
 print("Chosen LSTM, MODEL file: ", MODEL_NAME)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -70,7 +80,7 @@ df = format_idx_date(df)
 df = df[df.index <= "2024-02-01"]
 
 # REMOVE DATA SNOOPING 
-out_sample = False
+out_sample = True
 
 if out_sample is True:
     start_date = df_dates.index.min()
@@ -106,6 +116,12 @@ df_model = df_model.sort_index(ascending = False)
 # preserve the price features to use in the backtest data
 drop_cols = ['Open', 'High', 'Low', 'Close', 'Stock Splits']
 df1 = df_model[drop_cols]
+
+### ADD OPEN-GAP FEATURE
+df_model['prev_close'] = df_model['Close'].shift(-1)
+df_model['open_gap'] = 100*(df_model['Open'] / df_model['prev_close'] - 1)
+#df_model = df_model[df_model['open_gap'] >= (-1)]
+#df_model['open_gap'].hist()
 
 df_model = df_model[MODEL_FEAT]
 df2 = df_model.copy()
@@ -213,25 +229,27 @@ for n in range(0,3):
             k_names.append(n)
     
 ################### ADDING KELLY ######################################
+# historic returns for this strategy 
+df1 = df1[df1.index >= '2005-02-28']
 
 half_kelly_metric = True
 
 if half_kelly_metric is True:
     
-    start_capital = 1e4
+    start_capital = 3e4
     no_trade_k = [i for i in range(0,3) if i not in k_names][0]
     df = pd.DataFrame()
-    #half_kelly = kelly_criterion(ticker, df1.index.min()) / 2 
+    half_kelly = kelly_criterion(ticker, df1.index.min()) / 2 
     
     for date, row in df1.iterrows():
-        
-      #  try:
-            #half_kelly = kelly_criterion(ticker, date) / 2
-       # except FileNotFoundError:
-           # half_kelly =  1
+        #print(date)    
+        try:
+            half_kelly = kelly_criterion(ticker, date) / 2
+        except FileNotFoundError:
+            half_kelly =  1
             
             
-        half_kelly = 1
+        #half_kelly = 1
         # if half_kelly < 1:
         #     print("Convert half kelly to 1")
         #     half_kelly = 1
@@ -288,6 +306,16 @@ if half_kelly_metric is True:
 # =============================================================================
 # END OF ADDING KELLY
 # =============================================================================
+### INSPECT OPEN GAP 
+### ADD OPEN-GAP FEATURE
+df1['prev_close'] = df1['Close'].shift(1)
+df1['open_gap'] = 100*(df1['Open'] / df1['prev_close'] - 1)
+df1 = df1.dropna()
+#df_model = df_model[df_model['open_gap'] >= (-1)]
+#df_model['open_gap'].hist()
+
+
+
 
 #####   MAX DRAWDOWN
 from calculateMaxDD import calculateMaxDD
@@ -367,12 +395,10 @@ plt.show()
 if out_sample is False:
     if time_period == "12mo":
         rets = df1['daily_ret'].to_frame()
-        rets.to_csv(f'strat_returns/{ticker}_V2.csv')
+        #rets.to_csv(f'strat_returns/{ticker}_V2.csv')
         #rets.to_csv(f'{ticker}.csv')
 
 
 
-
-1e8*2.5
 
 
