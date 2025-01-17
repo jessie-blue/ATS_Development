@@ -4,14 +4,14 @@ Created on Tue Jan 23 18:22:39 2024
 
 @author: ktsar
 """
-import joblib
 
+import joblib
 from datetime import datetime
 from pathlib import Path 
 from Preprocessing_functions import *
 from techinical_analysis import *
 
-ticker = "QQQ"
+ticker = "IVE"
 n_clusters = 3
 specific_timeframe = True # usually used to campare against a specific model build 
 save = True # save the data 
