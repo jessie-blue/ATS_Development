@@ -21,7 +21,7 @@ from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
 from techinical_analysis import * 
 
-ticker = 'XLE'
+ticker = 'MSFT'
 
 if ticker != 'BTC-USD':
 
@@ -39,11 +39,18 @@ else:
     df = df.set_index('Date')
 
 df = pf.create_momentum_feat(df, ticker)
-df = pf.technical_indicators(df).dropna()
-df = reversal_patterns(df)
-df = continuation_patterns(df)
-df = magic_doji(df)
-df = pf.add_market_feature('SPY', data = df, time_period = '120mo')
+df = pf.create_momentum_feat(df, 'SPY')
+df = pf.create_momentum_feat(df, 'UUP')
+df = pf.technical_indicators(df, MA_DIVERGENCE=True).dropna()
+#df = reversal_patterns(df)
+#df = continuation_patterns(df)
+#df = magic_doji(df)
+
+# CREATE OPEN GAP FEATURE FOR THE TRADING DAY 
+df['open_gap'] =  (df['Open'] - df['Close'].shift()) / df['Close'].shift()
+
+#if ticker != 'SPY':
+#    df = pf.add_market_feature('SPY', data = df, time_period = '120mo')
 
 if ticker != 'BTC-USD':
     df = pf.format_idx_date(df)
@@ -53,6 +60,11 @@ else:
 
 df['labels'] = ((df['Close'] - df['Open']) >= 0).astype(int) 
 df['open_high'] = df['open_high'] * (-1)
+
+
+df = df[df.index <= '2024-01-01']
+
+
 
 print(f"0 - red bar n/ 1 - green bar",df['labels'].value_counts())
 # =============================================================================
@@ -135,7 +147,7 @@ hidden_size = 32
 num_layers = 2 
 learning_rate = 0.001
 momentum = 0.9
-epochs =  int(15e3)
+epochs =  int(5e3)
 num_classes = 2
 batch_size = 32
 hidden_size1 = 32
@@ -247,7 +259,7 @@ for epoch in range(epochs):
         test_loss /= len(test_loader)
         test_acc  /= len(test_loader)
     
-        if test_acc > best_test_accuracy: #or best_avg_acc > avg_acc: # reverse the second condition
+        if test_acc > best_test_accuracy or best_avg_acc > avg_acc: # reverse the second condition
             #if test_acc >= 0.68 and best_avg_acc >= 0.68:
             # UPDATE BEST MODEL
             best_test_accuracy = test_acc
@@ -288,28 +300,18 @@ res = pd.DataFrame(results.values())
 res.columns = ['tuple']
 
 res['train_acc'] = res['tuple'].apply(lambda x : x[0])
-res['test_acc'] = res['tuple'].apply(lambda x : x[0])
+res['test_acc'] = res['tuple'].apply(lambda x : x[1])
 
 del res['tuple']
 res.index = results.keys()
 
 
 import matplotlib.pyplot as plt
-
 plt.figure(figsize=(10,7))
-plt.plot(res['train_acc'], res['test_acc'])
-plt.xlabel('Training Accuracy')
-plt.ylabel('Test Accuracy')
-
-#y_test[52].value_counts()
-#y_test['labels'].value_counts()
-
-
-
-
-
-
-
+plt.plot(res.index, res['train_acc'], color = 'b')
+plt.plot(res.index, res['test_acc'], color = 'green')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
 
 
 

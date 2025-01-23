@@ -15,7 +15,7 @@ from pathlib import Path
 from Preprocessing_functions import *
 from techinical_analysis import * 
 
-ticker = "IVW"
+ticker = "XLU"
 n_clusters = 3 
 time_period = "360mo" # must be the same as in 1_Data_Acquisition or larger
 V3 = False # choosing LSTM Architecture - advanced with 2 layers
@@ -258,7 +258,7 @@ for n in range(0,3):
     
 ################### ADDING KELLY ######################################
 # historic returns for this strategy 
-df1 = df1[df1.index >= '2001-01-01']
+df1 = df1[df1.index >= '2006-01-01']
 
 half_kelly_metric = True
 
@@ -272,6 +272,7 @@ if half_kelly_metric is True:
         half_kelly = kelly_criterion(ticker, df1.index.min()) / 2 
     except FileNotFoundError:
         half_kelly = 1
+    
     
     
     for date, row in df1.iterrows():
@@ -377,6 +378,7 @@ plt.title(f"Backtest Short Open Strategy - {ticker}")
 
 # Plot data on the first y-axis
 ax1.plot(df1.index, df1['Close'], 'g-', alpha = 0.5)
+ax1.plot(df1.index, df1['half_kelly'], 'red', alpha = 0.5)
 ax1.set_xlabel('Date')
 ax1.set_ylabel('Close Price ', color='g')
 

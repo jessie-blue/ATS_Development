@@ -10,7 +10,6 @@ import joblib
 
 import os 
 from datetime import datetime
-#directory = "C:/Users/ktsar/Downloads/Python codes/Python codes/Git_Repos/ATS_Development/Strat_2"
 directory = os.getcwd().replace("\\", "/")
 os.chdir(directory)
 import numpy as np
@@ -25,7 +24,7 @@ from ALGO_KT1 import LSTM_Architecture as ls
 from torch.utils.data import DataLoader #, TensorDataset
 from techinical_analysis import * 
 
-ticker = "XLE"
+ticker = "MSFT"
 time_period = "360mo"
 
 ### LOAD FEAT LIST TO ORDER THE DATA ###
@@ -52,13 +51,13 @@ MODEL_NAME = os.listdir(MODEL_PATH)[idx]
 print("Chosen LSTM, MODEL file: ", MODEL_NAME)
 
 # LOAD BAR STATS 
-STATS_PATH = f"stats/{ticker}/"
-idx = 0 if len(os.listdir(STATS_PATH)) < 2 else int(input("Select file index: "))
-STATS_NAME = os.listdir(STATS_PATH)[idx]
-print("Chosen STATS file: ", STATS_NAME)
-stats = pd.read_csv(STATS_PATH + STATS_NAME, index_col = ['Unnamed: 0'])
+#STATS_PATH = f"stats/{ticker}/"
+#idx = 0 if len(os.listdir(STATS_PATH)) < 2 else int(input("Select file index: "))
+#STATS_NAME = os.listdir(STATS_PATH)[idx]
+#print("Chosen STATS file: ", STATS_NAME)
+#stats = pd.read_csv(STATS_PATH + STATS_NAME, index_col = ['Unnamed: 0'])
 
-del FEAT_PATH, idx, DF_PATH, FEAT_NAME, directory
+del FEAT_PATH, idx, DF_PATH, FEAT_NAME
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -73,11 +72,19 @@ else:
         df = pd.read_csv('data/BTC-USD/BTCUSD_15.csv', index_col='datetime')
 
 df = pf.create_momentum_feat(df, ticker)
+df = pf.create_momentum_feat(df, 'SPY')
+df = pf.create_momentum_feat(df, 'UUP')
 df = pf.technical_indicators(df, MA_DIVERGENCE = True).dropna()
-df = reversal_patterns(df)
-df = continuation_patterns(df)
-df = magic_doji(df)
-df = pf.add_market_feature('SPY', data = df, time_period = '120mo')
+#df = reversal_patterns(df)
+#df = continuation_patterns(df)
+#df = magic_doji(df)
+
+# CREATE OPEN GAP FEATURE FOR THE TRADING DAY 
+df['open_gap'] =  (df['Open'] - df['Close'].shift()) / df['Close'].shift()
+
+if ticker != 'SPY':
+    df = pf.add_market_feature('SPY', data = df, time_period = '120mo')
+
 
 if ticker != 'BTC-USD':
     df = pf.format_idx_date(df)
@@ -96,14 +103,13 @@ if out_sample is True:
     start_date = df_dates.index.min()
     df = df[df.index <= start_date]
     ## Manually set the dates
-    #df = df[df.index >= '2010-01-01']
+    #df = df[df.index >= '2024-08-05']
     
     del DF_NAME, df_dates
     
      
 ## Manually set the dates for the backtest time window 
-#df = df[df.index <= '2019-01-01']
-
+#df = df[df.index >= '2024-08-05']
 
 seq_length =  1
 df = df.sort_index(ascending = False)
@@ -121,6 +127,10 @@ except KeyError:
     drop_cols = ['Open', 'High', 'Low', 'Close']
     df1 = df[drop_cols]
     
+##### RENAME MODEL FEATURES WHERE TICKERS DO NOT COINCIDE FOR TESTING SPY MODEL ON OTHERS 
+
+#MODEL_FEAT = [i.replace('SPY', ticker) for i in MODEL_FEAT]
+
 
 df = df[MODEL_FEAT]
 df_model = df.copy()
@@ -138,8 +148,6 @@ del drop_cols
 
 X, y  = pf.create_multivariate_rnn_data(df_model, seq_length)
 del y
-
-
 
 ############################ PREDICTION #######################################
 
@@ -185,6 +193,7 @@ ACC = (df1['labels'] == df1['predictions']).sum() / df1.shape[1]
 ######## INFER HIGH OR LOW WAS FIRST ######
 predictions_dist = df1.predictions.value_counts()
 print('Value counts of the prediction classes: ', predictions_dist)
+print('Accuracy: ', ACC)
 
 ######## BACKTESTING #########
 
@@ -253,9 +262,9 @@ for date, row in df1.iterrows():
     #if date == end_date_for_test:
     #    break
 
-###########################
+####################################################################################
 ### Reformating the Loop DF
-###########################
+####################################################################################
 
 df = df.transpose()
 #df = df.infer_objects()
@@ -287,9 +296,9 @@ print(f'Start day Drawdown: {startDrawdownDay}')
 print(f"Average Yearly Return: {round(mean_ret*100, 2)} %")
 
 
-#
+####################################################################
 # PLOTTING
-#
+####################################################################
 
 # Create figure and axis objects
 plt.rcParams.update({'font.size': 12})
@@ -334,26 +343,36 @@ fig.text(0.1, 0.03, stats_text, fontsize=12,
 
 save = True
 if save is True:
-    plt.savefig(f"Green_Red Bar Prediction_Backtest_{ticker}_hk{half_kelly}=1_V2", bbox_inches='tight')
+    plt.savefig(f"Green_Red Bar Prediction_Backtest_{ticker}_NO_HALF_KELLY.png", bbox_inches='tight')
 
 plt.show()
 
-import matplotlib.pyplot as plt 
-plt.figure(figsize = (10,7))
-plt.plot(df.index, df['eod_capital'], color = 'b')
-plt.xlabel('Date')
-plt.ylabel("USD")
-
-
-
 acc = (df1['labels'] == df1['predictions']).sum() / df.shape[1]
+print('Backtest Accuracy: ', acc )
+
+#### Period Exploration 
+data = df1[df1.index <= '2010-01-01']
+data = data[data.index >= '2008-01-01']
+
+plt.figure(figsize= [10,7])
+plt.plot(data.index, data['eod_equity'], color = 'blue')
+plt.title(f'Period Exploration {data.index.min()} - {data.index.max()}')
+plt.xlabel('Date')
+plt.ylabel('Equity')
+
+#### HALF KELLY PLOT
+df1.half_kelly.hist()
+
+plt.figure(figsize= [10, 7])
+plt.plot(df1.index, df1['half_kelly'], color = 'b')
+plt.title('Kelly Criterion ')
 
 
+print(directory)
 
+save_returns = True
 
-
-
-
-
-
-
+if save_returns is True:
+    rets = df1[['daily_ret']]
+    rets.head()
+    rets.to_csv(directory + f'/strat_returns/{ticker}.csv')
