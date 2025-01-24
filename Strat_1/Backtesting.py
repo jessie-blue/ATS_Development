@@ -15,7 +15,7 @@ from pathlib import Path
 from Preprocessing_functions import *
 from techinical_analysis import * 
 
-ticker = "XLU"
+ticker = "IVE"
 n_clusters = 3 
 time_period = "360mo" # must be the same as in 1_Data_Acquisition or larger
 V3 = False # choosing LSTM Architecture - advanced with 2 layers

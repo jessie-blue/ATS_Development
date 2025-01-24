@@ -188,14 +188,72 @@ class LSTM_V3(nn.Module):
         return out
         
         
+class CustomLSTMModel(nn.Module):
+    def __init__(self, input_size, hidden_sizes, output_size):
+        """
+        Args:
+            input_size (int): The number of input features.
+            hidden_sizes (list): A list of hidden sizes for each LSTM layer (e.g., [128, 64, 32]).
+            output_size (int): The number of output features.
+        """
+        super(CustomLSTMModel, self).__init__()
+        self.hidden_sizes = hidden_sizes
+        
+        # Define the first LSTM layer
+        self.lstm1 = nn.LSTM(input_size, hidden_sizes[0], batch_first=True)
+        
+        # Define subsequent LSTM layers
+        self.lstm2 = nn.LSTM(hidden_sizes[0], hidden_sizes[1], batch_first=True)
+        self.lstm3 = nn.LSTM(hidden_sizes[1], hidden_sizes[2], batch_first=True)
+        
+        # Fully connected layer for final output
+        self.fc = nn.Linear(hidden_sizes[2], output_size)
+
+    def forward(self, x):
+        # Pass through the first LSTM layer
+        out, _ = self.lstm1(x)
+        
+        # Pass through the second LSTM layer
+        out, _ = self.lstm2(out)
+        
+        # Pass through the third LSTM layer
+        out, _ = self.lstm3(out)
+        
+        # Pass the final output through the fully connected layer
+        out = self.fc(out[:, -1, :])  # Use the last time-step's output
+        return out
         
         
         
+class CustomLSTMModel_2(nn.Module):
+    def __init__(self, input_size, hidden_sizes, output_size):
+        """
+        Args:
+            input_size (int): The number of input features.
+            hidden_sizes (list): A list of hidden sizes for each LSTM layer (e.g., [128, 64]).
+            output_size (int): The number of output features.
+        """
+        super(CustomLSTMModel_2, self).__init__()
         
+        # Define the first LSTM layer
+        self.lstm1 = nn.LSTM(input_size, hidden_sizes[0], batch_first=True)
         
+        # Define the second LSTM layer
+        self.lstm2 = nn.LSTM(hidden_sizes[0], hidden_sizes[1], batch_first=True)
         
+        # Fully connected layer for final output
+        self.fc = nn.Linear(hidden_sizes[1], output_size)
+
+    def forward(self, x):
+        # Pass through the first LSTM layer
+        out, _ = self.lstm1(x)
         
+        # Pass through the second LSTM layer
+        out, _ = self.lstm2(out)
         
+        # Pass the final output through the fully connected layer
+        out = self.fc(out[:, -1, :])  # Use the last time-step's output
+        return out 
         
         
         
