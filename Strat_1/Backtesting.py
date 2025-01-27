@@ -15,7 +15,7 @@ from pathlib import Path
 from Preprocessing_functions import *
 from techinical_analysis import * 
 
-ticker = "IVE"
+ticker = "XLU"
 n_clusters = 3 
 time_period = "360mo" # must be the same as in 1_Data_Acquisition or larger
 V3 = False # choosing LSTM Architecture - advanced with 2 layers
@@ -96,8 +96,8 @@ df = format_idx_date(df)
 #df = df[df.index <= "2024-02-01"]
 
 # REMOVE DATA SNOOPING 
-out_sample = True
-manual = True
+out_sample = False
+manual = False
 
 if out_sample is True:
     
@@ -162,10 +162,7 @@ del y
 
 ############################ PREDICTION #######################################
 
-
 X_tensor = torch.from_numpy(X).type(torch.float).to(device).squeeze(0)
-
-
 
 # Base LSTM Instantiation
 
@@ -226,6 +223,7 @@ ACC = (df1['labels'] == df1['predictions']).sum() / df1.shape[1]
 print('Model Accuracy: ', ACC)
 print('Value Counts: ',df1.predictions.value_counts())
 
+
 # =============================================================================
 # #### BACKTESTING ####
 # =============================================================================
@@ -258,6 +256,8 @@ for n in range(0,3):
     
 ################### ADDING KELLY ######################################
 # historic returns for this strategy 
+print('End date: ', end_date)
+print('Start date: ', df1.index.min())
 df1 = df1[df1.index >= '2006-01-01']
 
 half_kelly_metric = True
@@ -286,6 +286,7 @@ if half_kelly_metric is True:
             
         for k in range(len(k_names)):
             
+            row['bp_used'] = (start_capital * half_kelly, 2)
             row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
             row[f'target_{k_names[k]}'] = round((1 - cluster_stats.loc["median" , f"open_low_{k_names[k]}"]/100) * row['Open'], 2) 
             row[f'k{k_names[k]}_true'] = (row[f'target_{k_names[k]}'] >= row['Low']) 
@@ -341,9 +342,9 @@ if gap_testing == True:
     #df_model = df_model[df_model['open_gap'] >= (-1)]
     #df_model['open_gap'].hist()
 
-#########################
+#####################################################################
  # PERFORMANCE EVALUATION 
-#########################
+#####################################################################
 
 
 #####   MAX DRAWDOWN
@@ -384,7 +385,7 @@ ax1.set_ylabel('Close Price ', color='g')
 
 # Create a second y-axis
 ax2 = ax1.twinx()
-ax2.plot(df1.index, df1['eod_equity'], 'b-')
+ax2.plot(df1.index, df1['eod_equity'], 'b-', alpha = 0.3)
 ax2.set_ylabel('Equity USD', color='b')
 
 # Add black dotted line at y=0
@@ -412,7 +413,7 @@ fig.text(0.1, 0.03, stats_text, fontsize=12,
          verticalalignment='top', horizontalalignment='left',
          bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
 
-save = True
+save = False
 if save is True:
     plt.savefig(f"Short_Open_Backtests/Backtest_{ticker}_hk{half_kelly}.jpeg", bbox_inches='tight')
 
@@ -421,15 +422,22 @@ plt.show()
 # =============================================================================
 # SAVE STRAT RETURNS TO AID CALCULATING HALF KELLY FOR LIVE TRADING
 # =============================================================================
+save_returns = False
 
-if out_sample is False:
-    if time_period == "12mo":
+if save_returns == True:
+    if out_sample is False:
         rets = df1['daily_ret'].to_frame()
         rets.to_csv(f'strat_returns/{ticker}.csv')
-        #rets.to_csv(f'{ticker}.csv')
 
 
-df1.columns
+if df1.half_kelly.max() > 1 : 
+
+    df3 = df1[['labels','predictions','Volume','shares', 'bp_used', 
+            'net_pnl', 'eod_equity', 
+            'daily_ret', 'half_kelly']]
+    
+    df3.to_csv(f'strat_returns/Testing/{ticker}.csv')
 
 
+    
 
