@@ -160,4 +160,6 @@ for idx, row in file.iterrows():
 print(file)
 file = file[file['strat'] != 'Strat_2']
 print('Strat_1 Daily PNL: ', round(file['pnl'].sum(),2))
-print('Strat_1 PNL', round(file['eod_capital'].sum() - strat_1_capital, 2))
+adj_uso = 20
+adj290125 = 132+9 + adj_uso
+print('Strat_1 PNL', round(file['eod_capital'].sum() - strat_1_capital - adj290125, 2))
