@@ -13,6 +13,7 @@ import yfinance as yf
 import matplotlib.pyplot as plt 
 import torch
 import torch.nn as nn
+import glob 
 
 from datetime import datetime, timedelta 
 from mpl_toolkits import mplot3d
@@ -31,17 +32,18 @@ except ModuleNotFoundError:
 cwd = os.getcwd().replace("\\", "/"  )
 os.chdir(cwd)
 
-tickers = ["XLU", "USO", "XLI", "AMLP", "SPY"]
+#tickers = ["XLU", "USO", "XLI", "AMLP", "SPY"] # old version
+tickers = os.listdir(cwd + '/strat_returns')
+tickers = [i for i in tickers if i.endswith('csv')]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 prediction_date = input("Choose date to predict for: today or YYYY-MM-DD: ")
 
 # prediction_date = "2024-02-13"
-# ticker = "XLU"
 
 for ticker in tickers: 
-    
+    #ticker = 'SPY' for testing 
     # =============================================================================
     # PULL DATA FROM DB
     # =============================================================================

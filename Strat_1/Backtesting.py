@@ -286,7 +286,7 @@ if half_kelly_metric is True:
             
         for k in range(len(k_names)):
             
-            row['bp_used'] = (start_capital * half_kelly, 2)
+            #row['bp_used'] = (start_capital * half_kelly, 2) # needs more work to fix dataypes error (passing sequence)
             row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
             row[f'target_{k_names[k]}'] = round((1 - cluster_stats.loc["median" , f"open_low_{k_names[k]}"]/100) * row['Open'], 2) 
             row[f'k{k_names[k]}_true'] = (row[f'target_{k_names[k]}'] >= row['Low']) 
