@@ -32,9 +32,9 @@ except ModuleNotFoundError:
 cwd = os.getcwd().replace("\\", "/"  )
 os.chdir(cwd)
 
-#tickers = ["XLU", "USO", "XLI", "AMLP", "SPY"] # old version
-tickers = os.listdir(cwd + '/strat_returns')
-tickers = [i for i in tickers if i.endswith('csv')]
+tickers = ["XLU", "USO", "XLI", "AMLP", "SPY"] # old version
+#tickers = os.listdir(cwd + '/strat_returns')
+#tickers = [i for i in tickers if i.endswith('csv')]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -43,11 +43,16 @@ prediction_date = input("Choose date to predict for: today or YYYY-MM-DD: ")
 # prediction_date = "2024-02-13"
 
 for ticker in tickers: 
-    #ticker = 'SPY' for testing 
+    #ticker = 'SPY' #for testing 
     # =============================================================================
     # PULL DATA FROM DB
     # =============================================================================
-    df = downlaod_symbol_data(ticker) # period = "1day"
+    #df = downlaod_symbol_data(ticker) # period = "1day"
+    
+    # alternative to yfinance
+    df = download_data(ticker, days = 500) # period = "1day"
+    df['Dividends'] = 0
+    
     df = create_momentum_feat(df, ticker)
     df = format_idx_date(df)
     
@@ -96,6 +101,7 @@ for ticker in tickers:
     # MIGHT NOT BE REQUIRED (seq - lenght)
     seq_length =  1
     df_model = df_model.sort_index(ascending = False)
+    df_model = df_model.head()
     
     ## SCALING THE DATA BEFORE CONVERTING IT INTO SUITABLE INPUT FOR RNN 
     df_model = min_max_scaling(df_model)

@@ -19,6 +19,34 @@ from mpl_toolkits import mplot3d
 from sklearn.cluster import KMeans
 
 
+
+def download_data(ticker, days):
+    import pandas_datareader.data as web
+    import datetime
+
+    # Define stock ticker, start, and end dates
+    end_date = datetime.datetime.today()
+    start_date = end_date - datetime.timedelta(days=days)
+
+    # Fetch historical data from Stooq
+    df = web.DataReader(ticker, "stooq", start_date, end_date)
+    
+    df['open_low'] = 100*((df['Open'] - df['Low']) / df['Open']) 
+    
+    df['open_close'] = 100*((df['Open'] - df['Close']) / df['Open'])
+    
+    df['open_high'] = 100*((df['Open'] - df['High']) / df['Open'])
+    
+    df['high_low'] = 100*(abs(df['High'] - df['Low']) / df['High'])
+    
+    df['low_close'] = 100*((df['Low'] - df['Close']) / df['Low'])
+    
+    df['high_close'] = 100*((df['Close'] - df['High']) / df['High'])
+    
+    df['gap'] = 100*((df['Open'] - df['Close'].shift(1)) / df['Close'].shift(1))
+
+    return df
+
 def downlaod_symbol_data(symbol = "XLU", period = "120mo"):
     
     """

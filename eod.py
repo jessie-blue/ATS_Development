@@ -11,7 +11,8 @@ os.chdir(cwd)
 import numpy as np
 import pandas as pd 
 from datetime import datetime , timedelta, date 
-from Strat_1.Preprocessing_functions import downlaod_symbol_data
+from Strat_1.Preprocessing_functions import * # downlaod_symbol_data
+
 
 date = input("Choose date (today, yesterday or YYYY_MM_DD): ")
 
@@ -41,7 +42,8 @@ for idx, row in file.iterrows():
     
     print(ticker)
     
-    df = downlaod_symbol_data(ticker, period= "3mo")
+    #df = downlaod_symbol_data(ticker, period= "3mo")
+    df = download_data(ticker, days = 10)
     df = df[df.index.strftime("%Y_%m_%d") == date] # this is where the code breaks / check conversions 
     
     #break
@@ -89,7 +91,8 @@ file["pnl"] = np.where(file['direction'] == "HOLD", 0 , file['pnl'])
 ### Strat 2 - file_2 EOD Calculations for one symbol only 
 ticker = file_2['ticker'].item()
 
-mkt_data = downlaod_symbol_data(ticker, period='6mo')
+#mkt_data = downlaod_symbol_data(ticker, period='6mo')
+mkt_data = download_data(ticker, days=10)
 date2 = date.replace('_', '-')
 #date2 = datetime.strptime(date2, '%Y-%m-%d')
 mkt_data  = mkt_data[mkt_data.index == date2]

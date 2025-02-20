@@ -35,7 +35,12 @@ prediction_date = input("Choose date to predict for: today or YYYY-MM-DD: ")
 ### for ticker in tickers from here
 ticker = "SPY"
 
-df = pf.downlaod_symbol_data(ticker)
+#df = pf.downlaod_symbol_data(ticker)
+
+# Alternative to yfinance
+df = pf.download_data(ticker, days=365).sort_index()
+df['Dividends'] =  0
+
 df = pf.create_momentum_feat(df, ticker)
 df = pf.technical_indicators(df, MA_DIVERGENCE = True).dropna()
 df = reversal_patterns(df)
