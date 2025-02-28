@@ -47,11 +47,11 @@ for ticker in tickers:
     # =============================================================================
     # PULL DATA FROM DB
     # =============================================================================
-    #df = downlaod_symbol_data(ticker) # period = "1day"
+    df = downlaod_symbol_data(ticker) # period = "1day"
     
     # alternative to yfinance
-    df = download_data(ticker, days = 500) # period = "1day"
-    df['Dividends'] = 0
+    #df = download_data(ticker, days = 500) # period = "1day"
+    #df['Dividends'] = 0
     
     df = create_momentum_feat(df, ticker)
     df = format_idx_date(df)
@@ -101,7 +101,7 @@ for ticker in tickers:
     # MIGHT NOT BE REQUIRED (seq - lenght)
     seq_length =  1
     df_model = df_model.sort_index(ascending = False)
-    df_model = df_model.head()
+    #df_model = df_model.head()
     
     ## SCALING THE DATA BEFORE CONVERTING IT INTO SUITABLE INPUT FOR RNN 
     df_model = min_max_scaling(df_model)

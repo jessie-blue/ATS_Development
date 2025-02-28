@@ -89,6 +89,8 @@ def download_data(ticker, days):
     df['high_close'] = 100*((df['Close'] - df['High']) / df['High'])
     
     df['gap'] = 100*((df['Open'] - df['Close'].shift(1)) / df['Close'].shift(1))
+    
+    df['Dividends'] = 0 
 
     return df
 
@@ -482,13 +484,47 @@ def kelly_criterion(ticker,
     return round(abs(kelly) , 2)
     
 
+def intraday_data(ticker = 'SPY', interval = '1min', size = 'compact'):
+    from alpha_vantage.timeseries import TimeSeries
+    import pandas as pd
+    
+    API_KEY = "HHZPLP7IGWVH4SQW"
+    
+    # Initialize Alpha Vantage
+    ts = TimeSeries(key=API_KEY, output_format="pandas")
+    
+    # Get 1-minute interval intraday data (adjust interval as needed)
+    data, meta_data = ts.get_intraday(symbol=ticker, interval=interval, outputsize=size)
+    
+    return data 
 
 
+def realtime_data(ticker = 'SPY'):
+    from alpha_vantage.timeseries import TimeSeries
+    import pandas as pd
+    
+    API_KEY = "HHZPLP7IGWVH4SQW"
+    
+    # Initialize Alpha Vantage
+    ts = TimeSeries(key=API_KEY, output_format="pandas")
+    
+    # Fetch real-time stock data
+    data, meta_data = ts.get_quote_endpoint(symbol=ticker)
+    
+    # Rename columns for better readability
+    data = data.rename(columns={
+        "01. symbol": "Symbol",
+        "02. open": "Open",
+        "03. high": "High",
+        "04. low": "Low",
+        "05. price": "Price",
+        "06. volume": "Volume",
+        "07. latest trading day": "Latest Trading Day",
+        "08. previous close": "Previous Close",
+        "09. change": "Change",
+        "10. change percent": "Change Percent"
+    })
 
-
-
-#k  = kelly_criterion("XLU")
-
-
-
-
+    return data 
+    
+    

@@ -31,6 +31,8 @@ def download_data(ticker, days):
     # Fetch historical data from Stooq
     df = web.DataReader(ticker, "stooq", start_date, end_date)
     
+    df = df.sort_index()
+    
     df['open_low'] = 100*((df['Open'] - df['Low']) / df['Open']) 
     
     df['open_close'] = 100*((df['Open'] - df['Close']) / df['Open'])
@@ -44,6 +46,8 @@ def download_data(ticker, days):
     df['high_close'] = 100*((df['Close'] - df['High']) / df['High'])
     
     df['gap'] = 100*((df['Open'] - df['Close'].shift(1)) / df['Close'].shift(1))
+    
+    df['Dividends'] = 0 
 
     return df
 
@@ -88,6 +92,8 @@ def downlaod_symbol_data(symbol = "XLU", period = "120mo"):
     df['high_close'] = 100*((df['Close'] - df['High']) / df['High'])
     
     df['gap'] = 100*((df['Open'] - df['Close'].shift(1)) / df['Close'].shift(1))
+    
+    df['Dividends'] = 0 
 
     return df
 

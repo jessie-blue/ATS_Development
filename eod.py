@@ -107,6 +107,7 @@ file_2['eod_capital'] = file_2['capital'] + file_2['pnl']
 
 ### Adjust the strategies file 
 strats = pd.read_csv("strategies.csv")
+strats = strats[strats['status'] == 'active'] ### need to adjust active and testing strats
 strats['current_capital'] = strats['current_capital'].astype(float)
 
 # strat 2 

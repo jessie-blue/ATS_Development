@@ -489,3 +489,70 @@ def add_market_feature(symbol, time_period, data):
     data = data.merge(feature, left_index = True, right_index = True, how='left')
     return data
 
+def download_data(ticker, days):
+    import pandas_datareader.data as web
+    import datetime
+
+    # Define stock ticker, start, and end dates
+    end_date = datetime.datetime.today()
+    start_date = end_date - datetime.timedelta(days=days)
+
+    # Fetch historical data from Stooq
+    df = web.DataReader(ticker, "stooq", start_date, end_date)
+    df = df.sort_index()
+    
+    df['open_low'] = 100*((df['Open'] - df['Low']) / df['Open']) 
+    df['open_close'] = 100*((df['Open'] - df['Close']) / df['Open'])
+    df['open_high'] = 100*((df['Open'] - df['High']) / df['Open'])
+    df['high_low'] = 100*(abs(df['High'] - df['Low']) / df['High'])
+    df['low_close'] = 100*((df['Low'] - df['Close']) / df['Low'])
+    df['high_close'] = 100*((df['Close'] - df['High']) / df['High'])
+    df['gap'] = 100*((df['Open'] - df['Close'].shift(1)) / df['Close'].shift(1))
+    df['Dividends'] = 0 
+
+    return df
+
+
+def intraday_data(ticker = 'SPY', interval = '1min', size = 'compact'):
+    from alpha_vantage.timeseries import TimeSeries
+    import pandas as pd
+    
+    API_KEY = "HHZPLP7IGWVH4SQW"
+    
+    # Initialize Alpha Vantage
+    ts = TimeSeries(key=API_KEY, output_format="pandas")
+    
+    # Get 1-minute interval intraday data (adjust interval as needed)
+    data, meta_data = ts.get_intraday(symbol=ticker, interval=interval, outputsize=size)
+    
+    return data 
+
+
+def realtime_data(ticker = 'SPY'):
+    from alpha_vantage.timeseries import TimeSeries
+    import pandas as pd
+    
+    API_KEY = "HHZPLP7IGWVH4SQW"
+    
+    # Initialize Alpha Vantage
+    ts = TimeSeries(key=API_KEY, output_format="pandas")
+    
+    # Fetch real-time stock data
+    data, meta_data = ts.get_quote_endpoint(symbol=ticker)
+    
+    # Rename columns for better readability
+    data = data.rename(columns={
+        "01. symbol": "Symbol",
+        "02. open": "Open",
+        "03. high": "High",
+        "04. low": "Low",
+        "05. price": "Price",
+        "06. volume": "Volume",
+        "07. latest trading day": "Latest Trading Day",
+        "08. previous close": "Previous Close",
+        "09. change": "Change",
+        "10. change percent": "Change Percent"
+    })
+
+    return data 
+    

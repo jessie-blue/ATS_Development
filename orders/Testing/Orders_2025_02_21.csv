@@ -1,0 +1,2 @@
+strat,ticker,direction,last_close_price,capital,half_kelly,bp_used,n_shares,open_position,target_price,expected_return,stop_price
+Strat_1,SPY,SELL,610.38,27574.45,4.0,110297.8,180,at_open,0.996044,0.003956,at_close

@@ -127,7 +127,6 @@ del drop_cols
 X, y  = pf.create_multivariate_rnn_data(df_model, seq_length)
 del y
 
-
 ############################ PREDICTION #######################################
 
 X_tensor = torch.from_numpy(X).type(torch.float).to(device).squeeze(0)
@@ -139,10 +138,10 @@ num_classes = 2
 
 # INSTANTIATE MODEL
 model = ls.LSTM(input_size=input_feat, 
-             output_size=num_classes, 
-             hidden_size=hidden_size, 
-             num_layers=num_layers,
-             device=device).to(device)
+                output_size=num_classes, 
+                hidden_size=hidden_size, 
+                num_layers=num_layers,
+                device=device).to(device)
 
 # LOAD LSTM MODEL STATE DICT  
 model.load_state_dict(torch.load(f = MODEL_PATH + MODEL_NAME ))

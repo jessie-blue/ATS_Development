@@ -33,7 +33,7 @@ df_model = df_model.set_index("Date")
 
 
 end_date = df_model.index.max()
-seq_length =  10
+seq_length =  1
 test_size_pct = 0.30
 
 df_model = df_model.sort_index(ascending = False)
@@ -45,7 +45,6 @@ df_model = min_max_scaling(df_model)
 df_model['last_day'] = (df_model.index == end_date).astype(int)
 
 X, y  = create_multivariate_rnn_data(df_model, seq_length)
-
 
 # Train, Test Split 
 test_size = int(X.shape[0] * test_size_pct) 
