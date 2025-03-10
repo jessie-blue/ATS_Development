@@ -1,0 +1,3 @@
+date,strat,ticker,direction,last_close_price,capital,half_kelly,bp_used,n_shares,open_position,target_price,expected_return,stop_price
+2025_03_03,Strat_7,SPY,BUY,583.77,1,1.0,1.0,0,at_close_today,585.7381010537733,0.003371,tomorrow_open
+2025_03_03,Strat_7,SPY,BUY,583.77,1,1.0,1.0,0,at_close_today,585.7381010537733,0.003371,tomorrow_open
