@@ -42,8 +42,8 @@ for idx, row in file.iterrows():
     
     print(ticker)
     
-    #df = downlaod_symbol_data(ticker, period= "3mo")
-    df = download_data(ticker, days = 10)
+    df = downlaod_symbol_data(ticker, period= "3mo")
+    #df = download_data(ticker, days = 10)
     df = df[df.index.strftime("%Y_%m_%d") == date] # this is where the code breaks / check conversions 
     
     #break
@@ -168,5 +168,6 @@ adj_uso = 20
 adj290125 = 132+9 + adj_uso
 adj280225 = 300
 adj050325 = 37
-adjustments = adj_uso + adj290125 + adj280225 + adj050325
+adj170325 = 200
+adjustments = adj_uso + adj290125 + adj280225 + adj050325 + adj170325
 print('Strat_1 PNL', round(file['eod_capital'].sum() - strat_1_capital - adjustments, 2))

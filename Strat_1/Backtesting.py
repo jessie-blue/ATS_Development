@@ -15,7 +15,7 @@ from pathlib import Path
 from Preprocessing_functions import *
 from techinical_analysis import * 
 
-ticker = "SPY"
+ticker = "IVE"
 n_clusters = 3 
 time_period = "360mo" # must be the same as in 1_Data_Acquisition or larger
 V3 = False # choosing LSTM Architecture - advanced with 2 layers
@@ -90,10 +90,10 @@ print("Chosen LSTM, MODEL file: ", MODEL_NAME)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-#df = downlaod_symbol_data(ticker, period = time_period)
+df = downlaod_symbol_data(ticker, period = time_period)
 
 # Use an alternative to yfinance
-df = download_data(ticker, days = 7200)
+#df = download_data(ticker, days = 7200)
 #df = download_data('SPXL', days = 7200)
 df = format_idx_date(df)
 
@@ -101,8 +101,8 @@ print('Start date: ',df.index.min())
 #df = df[df.index <= "2024-02-01"]
 
 # REMOVE DATA SNOOPING 
-out_sample = True
-manual = False
+out_sample = False
+manual = True
 
 if out_sample is True:
     
