@@ -456,23 +456,39 @@ from datetime import date
 
 def kelly_criterion(ticker, 
                     date_to = date.today(), 
-                    period = "120mo"):
+                    period = "120mo",
+                    path = 'strat_retuns'):
     
     from dateutil.relativedelta import relativedelta
     import datetime    
     #ticker = 'AMLP'
-    df = pd.read_csv(f'strat_returns/{ticker}.csv', header = 0, names = ['date', 'daily_ret'])
+    #path = 'strat_returns'
+    #df = pd.read_csv(f'{path}/{ticker}.csv', header = 0, names = ['date', 'daily_ret'])
+    
+    df = pd.read_csv(f'{path}/{ticker}.csv', header = 0)
     df.date = pd.to_datetime(df.date)
+    
     date_to = pd.to_datetime(date_to)    
     date_from = pd.to_datetime(date_to) - relativedelta(months=6)
     
+    # Slice the data for the 6month period
     df = df[df.date <= date_to]
     df = df[df.date >= pd.to_datetime(date_from)]
 
-    mean_ret = df["daily_ret"].mean()
-    std = df["daily_ret"].std() 
+    try:
+        mean_ret = df["daily_ret"].mean()
+        #std = df["daily_ret"].std() 
+        sigma_sq = np.var(df['daily_ret'], ddof = 1)
     
-    kelly = mean_ret / std**2
+    except KeyError:
+        mean_ret = df["ret"].mean()
+        sigma_sq = np.var(df['ret'], ddof = 1)
+    
+    
+    if sigma_sq == 0:
+        return 0  # Avoid division by zero
+    
+    kelly = mean_ret / sigma_sq
     
     if abs(kelly) > 8:
         kelly = 8

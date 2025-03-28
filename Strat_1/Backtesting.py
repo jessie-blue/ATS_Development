@@ -15,7 +15,7 @@ from pathlib import Path
 from Preprocessing_functions import *
 from techinical_analysis import * 
 
-ticker = "IVE"
+ticker = "USO"
 n_clusters = 3 
 time_period = "360mo" # must be the same as in 1_Data_Acquisition or larger
 V3 = False # choosing LSTM Architecture - advanced with 2 layers
@@ -23,6 +23,7 @@ BASE = False if V3 == True else True # only 1 layer
 
 ### LOAD KMEANS MODEL ###
 KMEANS_PATH = f"kmeans_models/{ticker}/"
+#print(os.getcwd())
 KMEANS_MODEL_PATH = os.listdir(KMEANS_PATH)
 try:
     KMEANS_MODEL_PATH.remove('Junk')
@@ -94,15 +95,15 @@ df = downlaod_symbol_data(ticker, period = time_period)
 
 # Use an alternative to yfinance
 #df = download_data(ticker, days = 7200)
-#df = download_data('SPXL', days = 7200)
+
 df = format_idx_date(df)
 
 print('Start date: ',df.index.min())
 #df = df[df.index <= "2024-02-01"]
 
 # REMOVE DATA SNOOPING 
-out_sample = False
-manual = True
+out_sample = True
+manual = False
 
 if out_sample is True:
     
@@ -242,7 +243,6 @@ df1 = df1.sort_index()
 #df1 = df1[df1_cols]
 #del df1_cols
 
-capital = 25000
 tc = 3
 
 #create a list of clusters to use in the backtesting df1
@@ -261,74 +261,91 @@ for n in range(0,3):
             k_names.append(n)
     
 ################### ADDING KELLY ######################################
+from dateutil.relativedelta import relativedelta
+start_date_returns = '2006-01-01'
+df1 = df1[df1.index >= start_date_returns]
+df_start_date = df1.index.min()
+
 # historic returns for this strategy 
 print('End date: ', end_date)
-print('Start date: ', df1.index.min())
-df1 = df1[df1.index >= '2006-01-01']
+print('Start date: ', df_start_date)
+
 
 half_kelly_metric = True
 
+start_capital = 1e4
+no_trade_k = [i for i in range(0,3) if i not in k_names][0]
+df = pd.DataFrame()
+
 if half_kelly_metric is True:
     
-    start_capital = 1e4
-    no_trade_k = [i for i in range(0,3) if i not in k_names][0]
-    df = pd.DataFrame()
+    hk_date = (df_start_date + relativedelta(months= 6)).strftime('%Y-%m-%d')
+    print('HK Start date: ', hk_date)
+    df1 = df1[df1.index >= hk_date]
     
     try:
-        half_kelly = kelly_criterion(ticker, df1.index.min()) / 2 
+        half_kelly = kelly_criterion(ticker, date_to=hk_date, path = 'strat_returns/Testing/no_kelly_criterion_returns') / 2 
     except FileNotFoundError:
         half_kelly = 1
+        print('NO Half Kelly Available')
+else: 
+    half_kelly = 1 
+    
+
+for date, row in df1.iterrows():
     
     
-    
-    for date, row in df1.iterrows():
-        
+    if half_kelly_metric is True:
         try:
-            half_kelly = kelly_criterion(ticker, date) / 2
+            half_kelly = kelly_criterion(ticker, date, path = 'strat_returns/Testing/no_kelly_criterion_returns') / 2
         except FileNotFoundError:
             half_kelly =  1
             print(date)
-            
-            
-        for k in range(len(k_names)):
-            
-            #row['bp_used'] = (start_capital * half_kelly, 2) # needs more work to fix dataypes error (passing sequence)
-            row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
-            row[f'target_{k_names[k]}'] = round((1 - cluster_stats.loc["median" , f"open_low_{k_names[k]}"]/100) * row['Open'], 2) 
-            row[f'k{k_names[k]}_true'] = (row[f'target_{k_names[k]}'] >= row['Low']) 
-            row[f'k{k_names[k]}_profit'] = (row[f'k{k_names[k]}_true'] * (row['Open'] - row[f'target_{k_names[k]}']))* row['shares']
-            row[f'k{k_names[k]}_loss'] = round(((row['Open'] - row['Close']) * row['shares']),4)
-            row[f'k{k_names[k]}_pnl'] = np.where(row[f'k{k_names[k]}_true'] == True, row[f'k{k_names[k]}_profit'], row[f'k{k_names[k]}_loss'])
-            del row[f'k{k_names[k]}_profit'], row[f'k{k_names[k]}_loss']
-            
-        
-        row[f'k{k_names[0]}_k{k_names[1]}'] = np.where(row['predictions'] == 0, row[f'k{k_names[0]}_pnl'], row[f'k{k_names[1]}_pnl'])
-        row['k0_k1_k2'] = np.where(row['predictions'] == no_trade_k, 0, row[f'k{k_names[0]}_k{k_names[1]}'] )
-        row['net_pnl'] = np.where(row['k0_k1_k2'] != 0, row['k0_k1_k2'] - tc, 0)
-        row['eod_equity'] = start_capital + row['net_pnl']
-        row['daily_ret'] = row['eod_equity'] / start_capital - 1
-        row['half_kelly'] = half_kelly
-        
-        start_capital += row['net_pnl']
-        df = pd.concat([df, row.to_frame().transpose()], axis= 0)
     
-    #### SET DATATYPES IN THE NEW DF
-    for col in list(df.columns):
+    else: 
+        half_kelly = 1 
+        print('No kelly critetion: ', date)
         
-        if ("true" or "last_day") in col:
-            df[col] = df[col].astype("bool")
-            
-        elif ("labels" or "Volume" or "predictions") in col:
-            df[col] = df[col].astype("int32")
         
-        else:
-            df[col] = df[col].astype("float64")
+    for k in range(len(k_names)):
         
-    del df1
+        #row['bp_used'] = (start_capital * half_kelly, 2) # needs more work to fix dataypes error (passing sequence)
+        row['shares'] = (start_capital * half_kelly) // row['Close'] ## you need to divide cluster stats from target with USO - check clusters stats df for % or decimals 
+        row[f'target_{k_names[k]}'] = round((1 - cluster_stats.loc["median" , f"open_low_{k_names[k]}"]/100) * row['Open'], 2) 
+        row[f'k{k_names[k]}_true'] = (row[f'target_{k_names[k]}'] >= row['Low']) 
+        row[f'k{k_names[k]}_profit'] = (row[f'k{k_names[k]}_true'] * (row['Open'] - row[f'target_{k_names[k]}']))* row['shares']
+        row[f'k{k_names[k]}_loss'] = round(((row['Open'] - row['Close']) * row['shares']),4)
+        row[f'k{k_names[k]}_pnl'] = np.where(row[f'k{k_names[k]}_true'] == True, row[f'k{k_names[k]}_profit'], row[f'k{k_names[k]}_loss'])
+        del row[f'k{k_names[k]}_profit'], row[f'k{k_names[k]}_loss']
+        
     
-    df1 = df.copy()
+    row[f'k{k_names[0]}_k{k_names[1]}'] = np.where(row['predictions'] == 0, row[f'k{k_names[0]}_pnl'], row[f'k{k_names[1]}_pnl'])
+    row['k0_k1_k2'] = np.where(row['predictions'] == no_trade_k, 0, row[f'k{k_names[0]}_k{k_names[1]}'] )
+    row['net_pnl'] = np.where(row['k0_k1_k2'] != 0, row['k0_k1_k2'] - tc, 0)
+    row['eod_equity'] = start_capital + row['net_pnl']
+    row['daily_ret'] = row['eod_equity'] / start_capital - 1
+    row['half_kelly'] = half_kelly
     
-    df1['pnl_cumsum'] = df1['net_pnl'].cumsum()
+    start_capital += row['net_pnl']
+    df = pd.concat([df, row.to_frame().transpose()], axis= 0)
+
+#### SET DATATYPES IN THE NEW DF
+for col in list(df.columns):
+    
+    if ("true" or "last_day") in col:
+        df[col] = df[col].astype("bool")
+        
+    elif ("labels" or "Volume" or "predictions") in col:
+        df[col] = df[col].astype("int32")
+    
+    else:
+        df[col] = df[col].astype("float64")
+    
+del df1
+
+df1 = df.copy()
+
+df1['pnl_cumsum'] = df1['net_pnl'].cumsum()
 
 # =============================================================================
 # END OF ADDING KELLY
@@ -377,6 +394,24 @@ print(f'Max Drawdown Duration: {maxDrawdownDuration} days' )
 print(f'Start day Drawdown: {startDrawdownDay}')
 print(f"Average Yearly Return: {round(mean_ret*100, 2)} %")
 
+
+if half_kelly_metric is True:
+
+    ### HALF KELLY PROGRESSION OVER TIME 
+    plt.figure(figsize=[10,7])
+    plt.plot(df1.index, df1.half_kelly, color = 'b')
+    plt.title('Half Kelly Over Time')
+    plt.xlabel('Date')
+    plt.ylabel('HK')
+
+    plt.figure(figsize=[10,7])
+    plt.hist(df1['half_kelly'], color = 'b')
+    plt.title('Half Kelly Distribution')
+    plt.xlabel('HK Value')
+    plt.ylabel('Count')
+
+
+
 # Create figure and axis objects
 plt.rcParams.update({'font.size': 12})
 
@@ -419,9 +454,10 @@ fig.text(0.1, 0.03, stats_text, fontsize=12,
          verticalalignment='top', horizontalalignment='left',
          bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
 
-save = False
+save = True
 if save is True:
-    plt.savefig(f"Short_Open_Backtests/Backtest_{ticker}_hk{half_kelly}.jpeg", bbox_inches='tight')
+    #plt.savefig(f"Short_Open_Backtests/Backtest_{ticker}_hk{half_kelly}.jpeg", bbox_inches='tight')
+    plt.savefig(f"Short_Open_Backtests/kelly_backtests/Backtest_{ticker}.jpeg", bbox_inches='tight')
 
 plt.show()
 
@@ -438,12 +474,20 @@ if save_returns == True:
 
 if df1.half_kelly.max() > 1 : 
 
-    df3 = df1[['labels','predictions','Volume','shares', 'bp_used', 
+    df3 = df1[['labels','predictions','Volume','shares',
             'net_pnl', 'eod_equity', 
             'daily_ret', 'half_kelly']]
     
-    df3.to_csv(f'strat_returns/Testing/{ticker}.csv')
+    df3.to_csv(f'strat_returns/Testing//kelly_returns/{ticker}.csv', index_label='date')
 
+
+if df1.half_kelly.max() == df1.half_kelly.min():
+    
+    df3 = df1[['labels','predictions','Volume','shares',  
+            'net_pnl', 'eod_equity', 
+            'daily_ret', 'half_kelly']]
+    
+    df3.to_csv(f'strat_returns/Testing/no_kelly_criterion_returns/{ticker}.csv', index_label='date')
 
     
 
