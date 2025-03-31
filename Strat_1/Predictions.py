@@ -43,7 +43,7 @@ prediction_date = input("Choose date to predict for: today or YYYY-MM-DD: ")
 # prediction_date = "2024-02-13"
 
 for ticker in tickers: 
-    #ticker = 'SPY' #for testing 
+    #ticker = 'IWM' #for testing 
     # =============================================================================
     # PULL DATA FROM DB
     # =============================================================================
@@ -67,7 +67,11 @@ for ticker in tickers:
     KMEANS_PATH = f"kmeans_models/{ticker}/"
     KMEANS_FILES = os.listdir(KMEANS_PATH)
     print('Choose a file for clustering: ', KMEANS_FILES)
-    KMEANS_FILES.remove('Junk')
+    try:
+        KMEANS_FILES.remove('Junk')
+    except ValueError:
+        print('No Junk file')
+    
     idx = 0 if len(KMEANS_FILES) < 2 else int(input("Select file index: "))
     KMEANS_NAME = KMEANS_FILES[idx]
     print("Chosen K_MEANS MODEL file: ", KMEANS_NAME)
@@ -81,13 +85,18 @@ for ticker in tickers:
     
     df_model = df.merge(k_predictions, left_index = True, right_index = True)
     del data, k_predictions, loaded_kmeans
+    
     # =============================================================================
     # DATA TRANSFORMATION  - SCALING AND LSTM FORMATTING 
     # =============================================================================
     ### LOAD FEAT LIST TO ORDER THE DATA ###
     FEAT_PATH = f"model_features/{ticker}/"
     FEAT_FILES = os.listdir(FEAT_PATH)
-    FEAT_FILES.remove('Junk')
+    try:
+        FEAT_FILES.remove('Junk')
+    except ValueError:
+        print('No Junk File')
+    
     print('Choose a features list to use:', FEAT_FILES)
     idx = 0 if len(FEAT_FILES) < 2 else int(input("Select file index (e.g. 0,1,2)"))
     FEAT_NAME = FEAT_FILES[idx]
@@ -96,6 +105,12 @@ for ticker in tickers:
     
     end_date = df_model.index.max()
     df_model['last_day'] = (df_model.index == end_date).astype(int)
+    
+    ### ADDED TO RUN SPY MODELS ON DIFFERENT TICKERS ###
+    ###### need to change the names of the model features 
+    if 'SPY' in FEAT_NAME and ticker!= 'SPY':
+        MODEL_FEAT = [i.replace('SPY', ticker) if 'SPY' in i else i for i in MODEL_FEAT]
+    
     df_model = df_model[MODEL_FEAT].dropna()
     
     # MIGHT NOT BE REQUIRED (seq - lenght)
@@ -119,7 +134,10 @@ for ticker in tickers:
     # LOAD LSTM MODEL STATE DICT  
     MODEL_PATH = f"lstm_models/{ticker}/"
     LSTM_FILES = os.listdir(MODEL_PATH)
-    LSTM_FILES.remove('Junk')
+    try:
+        LSTM_FILES.remove('Junk')
+    except ValueError:
+        print('No Junk File')
     print('Choose LSTM Model: ', LSTM_FILES)
     idx = 0 if len(LSTM_FILES) < 2 else int(input("Select file index: "))
     MODEL_NAME = LSTM_FILES[idx]
@@ -153,7 +171,11 @@ for ticker in tickers:
     STATS_PATH = f"Data/{ticker}/k_stats/"
     STATS_FILES = os.listdir(STATS_PATH)
     print("KMEANS Stats files: ", STATS_FILES)
-    STATS_FILES.remove('Junk')
+    try:
+        STATS_FILES.remove('Junk')
+    except ValueError:
+        print('No Junk File')    
+        
     idx = 0 if len(STATS_FILES) < 2 else int(input("Select file index: "))
     STATS_NAME = STATS_FILES[idx]
     print("Chosen K_STATS file: ", STATS_NAME)
@@ -194,12 +216,16 @@ for ticker in tickers:
     strats = strats[strats['strategy_name'] == 'Strat_1']
     strats = strats[strats['symbol'] == ticker]
     
-    kelly = kelly_criterion(ticker, period = "6mo", path = 'strat_returns')
+    kelly = kelly_criterion(ticker, path = 'strat_returns')
     
     strat = 'Strat_1' # this was changes from 'Short_Open' in case smtng breaks
     symbol = ticker
     last_price = df['Close'].iloc[-1]
-    capital = strats['current_capital'].item()
+    try:
+        capital = strats['current_capital'].item()
+    except ValueError:
+        print('Symbol is not included in the strategies.csv file!')
+        capital = 10000 # set just for testing purposes (strategies file fix later)
     half_kelly = kelly / 2
     #if half_kelly < 1: removed this on 27.11.2024 to allow for less size to be used
     #    half_kelly = 1 

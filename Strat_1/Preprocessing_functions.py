@@ -456,7 +456,7 @@ from datetime import date
 
 def kelly_criterion(ticker, 
                     date_to = date.today(), 
-                    period = "120mo",
+                    #period = "120mo",
                     path = 'strat_retuns'):
     
     from dateutil.relativedelta import relativedelta
