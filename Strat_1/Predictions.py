@@ -32,9 +32,9 @@ except ModuleNotFoundError:
 cwd = os.getcwd().replace("\\", "/"  )
 os.chdir(cwd)
 
-tickers = ["XLU", "USO", "XLI", "AMLP", "SPY"] # old version
-#tickers = os.listdir(cwd + '/strat_returns')
-#tickers = [i for i in tickers if i.endswith('csv')]
+#tickers = ["XLU", "USO", "XLI", "AMLP", "SPY"] # old version
+tickers = os.listdir(cwd + '/strat_returns/prod')
+tickers = [i.replace('.csv', '') for i in tickers if i.endswith('csv')]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -216,7 +216,7 @@ for ticker in tickers:
     strats = strats[strats['strategy_name'] == 'Strat_1']
     strats = strats[strats['symbol'] == ticker]
     
-    kelly = kelly_criterion(ticker, path = 'strat_returns')
+    kelly = kelly_criterion(ticker, path = 'strat_returns/prod')
     
     strat = 'Strat_1' # this was changes from 'Short_Open' in case smtng breaks
     symbol = ticker

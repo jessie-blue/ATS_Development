@@ -91,8 +91,8 @@ file["pnl"] = np.where(file['direction'] == "HOLD", 0 , file['pnl'])
 ### Strat 2 - file_2 EOD Calculations for one symbol only 
 ticker = file_2['ticker'].item()
 
-#mkt_data = downlaod_symbol_data(ticker, period='6mo')
-mkt_data = download_data(ticker, days=10)
+mkt_data = downlaod_symbol_data(ticker, period='6mo')
+#mkt_data = download_data(ticker, days=10)
 date2 = date.replace('_', '-')
 #date2 = datetime.strptime(date2, '%Y-%m-%d')
 mkt_data  = mkt_data[mkt_data.index == date2]
@@ -164,10 +164,10 @@ for idx, row in file.iterrows():
 print(file)
 file = file[file['strat'] != 'Strat_2']
 print('Strat_1 Daily PNL: ', round(file['pnl'].sum(),2))
-adj_uso = 20
-adj290125 = 132+9 + adj_uso
-adj280225 = 300
-adj050325 = 37
-adj170325 = 200
-adjustments = adj_uso + adj290125 + adj280225 + adj050325 + adj170325
-print('Strat_1 PNL', round(file['eod_capital'].sum() - strat_1_capital - adjustments, 2))
+#adj_uso = 20
+#adj290125 = 132+9 + adj_uso
+#adj280225 = 300
+#adj050325 = 37
+#adj170325 = 200
+#adjustments = adj_uso + adj290125 + adj280225 + adj050325 + adj170325
+print('Strat_1 PNL', round(file['eod_capital'].sum() - strat_1_capital, 2))

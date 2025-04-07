@@ -291,13 +291,14 @@ if half_kelly_metric is True:
 else: 
     half_kelly = 1 
     
+returns_path = 'strat_returns/Testing/mixed_returns'
+mixed_returns = True
 
 for date, row in df1.iterrows():
     
-    
     if half_kelly_metric is True:
         try:
-            half_kelly = kelly_criterion(ticker, date, path = 'strat_returns/Testing/no_kelly_criterion_returns') / 2
+            half_kelly = kelly_criterion(ticker, date, path = returns_path) / 2
         except FileNotFoundError:
             half_kelly =  1
             print(date)
@@ -328,6 +329,11 @@ for date, row in df1.iterrows():
     
     start_capital += row['net_pnl']
     df = pd.concat([df, row.to_frame().transpose()], axis= 0)
+    
+    ########### UPDATE RETURNS ####################
+    if mixed_returns is True: 
+        df_returns = pd.read_csv(returns_path +'/' + ticker + '.csv')
+
 
 #### SET DATATYPES IN THE NEW DF
 for col in list(df.columns):
