@@ -1,0 +1,12 @@
+strat,ticker,direction,last_close_price,capital,half_kelly,bp_used,n_shares,open_position,target_price,expected_return,stop_price
+Strat_1,AMLP,SELL,47.17,5204.11,3.3,17173.56,364,at_open,0.99251,0.00749,at_close
+Strat_1,IVE,HOLD,180.92,3999.3,4.0,15997.2,88,at_open,0.99849,0.00151,at_close
+Strat_1,IVW,HOLD,92.32,3986.26,2.075,8271.49,89,at_open,0.996572,0.003428,at_close
+Strat_1,IWM,HOLD,189.68,6157.18,4.0,24628.72,129,at_open,0.997386,0.002614,at_close
+Strat_1,SPY,HOLD,548.62,3383.26,4.0,13533.04,24,at_open,0.998378,0.001622,at_close
+Strat_1,USO,HOLD,67.58,4079.8,4.0,16319.2,241,at_open,0.994494,0.005506,at_close
+Strat_1,XLF,HOLD,47.23,4256.67,4.0,17026.68,360,at_open,0.997987,0.002013,at_close
+Strat_1,XLI,SELL,126.76,4079.82,2.545,10383.14,81,at_open,0.981627,0.018373,at_close
+Strat_1,XLU,SELL,75.97,6517.12,2.2,14337.66,188,at_open,0.993,0.007,at_close
+Strat_1,XLV,HOLD,138.76,5540.28,1.22,6759.14,48,at_open,0.998411,0.001589,at_close
+Strat_2,SPY,BUY,548.62,100356.85,0.74,74264.07,135,at_open,at_close,0.38,at_close
