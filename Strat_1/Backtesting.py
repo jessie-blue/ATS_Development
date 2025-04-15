@@ -102,7 +102,7 @@ print('Start date: ',df.index.min())
 #df = df[df.index <= "2024-02-01"]
 
 # REMOVE DATA SNOOPING 
-out_sample = True
+out_sample = False
 manual = False
 
 if out_sample is True:
@@ -130,7 +130,7 @@ data = df[["open_low", "open_close", "gap"]].dropna()
 print(data.shape)
 k_predictions = pd.DataFrame(loaded_kmeans.predict(data), columns = ["labels"], index = data.index)
 #data = data.merge(k_predictions, left_index = True, right_index = True)#.reset_index()
-del FILE, KMEANS_NAME, KMEANS_PATH, loaded_kmeans
+del FILE, KMEANS_PATH, loaded_kmeans
 
 df_model = df.merge(k_predictions, left_index = True, right_index = True)
 
@@ -291,11 +291,11 @@ if half_kelly_metric is True:
 else: 
     half_kelly = 1 
     
-returns_path = 'strat_returns/Testing/mixed_returns'
+returns_path = 'strat_returns/Testing/mixed_returns/testing'
 mixed_returns = True
 
 for date, row in df1.iterrows():
-    
+    #break
     if half_kelly_metric is True:
         try:
             half_kelly = kelly_criterion(ticker, date, path = returns_path) / 2
@@ -333,10 +333,12 @@ for date, row in df1.iterrows():
     ########### UPDATE RETURNS ####################
     if mixed_returns is True: 
         df_returns = pd.read_csv(returns_path +'/' + ticker + '.csv', index_col='date')
+        df_returns = df_returns[df_returns.index < date.strftime('%Y-%m-%d')]
         new_row = row[list(df_returns.columns)].to_frame().transpose()
         df_returns = pd.concat([df_returns, new_row], axis = 0)
         df_returns = df_returns.infer_objects()
-        df_returns = format_idx_date(df_returns)
+        df_returns.index = pd.to_datetime(df_returns.index)
+        df_returns.index.name = 'date'
         df_returns.to_csv(returns_path +'/' + ticker + '.csv')
         
 
@@ -468,10 +470,39 @@ fig.text(0.1, 0.03, stats_text, fontsize=12,
          verticalalignment='top', horizontalalignment='left',
          bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
 
-save = True
+model_info = f'LSTM Model Name: '
+model_info += f'{MODEL_NAME} \n'
+model_info += f'K-means Model Name:'
+model_info += f'{KMEANS_NAME}'
+fig.text(
+    0, 1, model_info, fontsize=11,
+    verticalalignment='top', horizontalalignment='left',
+    bbox=dict(facecolor='white', alpha=0.5,edgecolor='none'))
+
+
+### SAVING THE PLOT 
+save = True 
 if save is True:
-    #plt.savefig(f"Short_Open_Backtests/Backtest_{ticker}_hk{half_kelly}.jpeg", bbox_inches='tight')
-    plt.savefig(f"Short_Open_Backtests/kelly_backtests/Backtest_{ticker}.jpeg", bbox_inches='tight')
+    #plt.savefig(f"Short_Open_Backtests/kelly_backtests/Backtest_{ticker}.jpeg", bbox_inches='tight')
+
+    if out_sample is True: 
+        if mixed_returns is True:
+            plt.savefig(f"Short_Open_Backtests/out_sample/mixed_returns/Backtest_{ticker}.jpeg", bbox_inches='tight')
+        if df1.half_kelly.max() == df1.half_kelly.min(): # no kelly returns 
+            plt.savefig(f"Short_Open_Backtests/out_sample/no_half_kelly/Backtest_{ticker}.jpeg", bbox_inches='tight')
+        if df1.half_kelly.max() > 1 : 
+            if mixed_returns is False: 
+                plt.savefig(f"Short_Open_Backtests/out_sample/half_kelly/Backtest_{ticker}.jpeg", bbox_inches='tight')
+
+    if out_sample is False: 
+        if mixed_returns is True:
+            plt.savefig(f"Short_Open_Backtests/insample/mixed_returns/Backtest_{ticker}.jpeg", bbox_inches='tight')
+        if df1.half_kelly.max() == df1.half_kelly.min(): # no kelly returns 
+            plt.savefig(f"Short_Open_Backtests/insample/no_half_kelly/Backtest_{ticker}.jpeg", bbox_inches='tight')
+        if df1.half_kelly.max() > 1 : 
+            if mixed_returns is False: 
+                plt.savefig(f"Short_Open_Backtests/insample/half_kelly/Backtest_{ticker}.jpeg", bbox_inches='tight')
+
 
 plt.show()
 
@@ -486,13 +517,14 @@ if save_returns == True:
         rets.to_csv(f'strat_returns/{ticker}.csv')
 
 
-if df1.half_kelly.max() > 1 : 
+if mixed_returns == False:
+    if df1.half_kelly.max() > 1 : 
 
-    df3 = df1[['labels','predictions','Volume','shares',
-            'net_pnl', 'eod_equity', 
-            'daily_ret', 'half_kelly']]
-    
-    df3.to_csv(f'strat_returns/Testing//kelly_returns/{ticker}.csv', index_label='date')
+        df3 = df1[['labels','predictions','Volume','shares',
+                'net_pnl', 'eod_equity', 
+                'daily_ret', 'half_kelly']]
+        
+        df3.to_csv(f'strat_returns/Testing//kelly_returns/{ticker}.csv', index_label='date')
 
 
 if df1.half_kelly.max() == df1.half_kelly.min():
@@ -503,5 +535,4 @@ if df1.half_kelly.max() == df1.half_kelly.min():
     
     df3.to_csv(f'strat_returns/Testing/no_kelly_criterion_returns/{ticker}.csv', index_label='date')
 
-    
 

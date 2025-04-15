@@ -241,12 +241,8 @@ def cluster_stats(data, cluster_label, col1, col2, col3):
 
 def format_idx_date(df_model):
     
-    
     df_model = df_model.reset_index()
-    try:
-        df_model['Date'] = pd.to_datetime(df_model['Date']).dt.date
-    except KeyError:
-        df_model['date'] = pd.to_datetime(df_model['date']).dt.date
+    df_model['Date'] = pd.to_datetime(df_model['Date']).dt.date
     df_model = df_model.set_index("Date")
     df_model.index = pd.to_datetime(df_model.index)
     
