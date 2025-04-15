@@ -239,7 +239,6 @@ def cluster_stats(data, cluster_label, col1, col2, col3):
     return avg, avg_stats
 
 
-
 def format_idx_date(df_model):
     
     
