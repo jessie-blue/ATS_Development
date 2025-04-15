@@ -244,7 +244,10 @@ def format_idx_date(df_model):
     
     
     df_model = df_model.reset_index()
-    df_model['Date'] = pd.to_datetime(df_model['Date']).dt.date
+    try:
+        df_model['Date'] = pd.to_datetime(df_model['Date']).dt.date
+    except KeyError:
+        df_model['date'] = pd.to_datetime(df_model['date']).dt.date
     df_model = df_model.set_index("Date")
     df_model.index = pd.to_datetime(df_model.index)
     

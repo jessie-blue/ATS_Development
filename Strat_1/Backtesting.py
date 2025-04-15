@@ -15,7 +15,7 @@ from pathlib import Path
 from Preprocessing_functions import *
 from techinical_analysis import * 
 
-ticker = "USO"
+ticker = "SPY"
 n_clusters = 3 
 time_period = "360mo" # must be the same as in 1_Data_Acquisition or larger
 V3 = False # choosing LSTM Architecture - advanced with 2 layers
@@ -332,7 +332,15 @@ for date, row in df1.iterrows():
     
     ########### UPDATE RETURNS ####################
     if mixed_returns is True: 
-        df_returns = pd.read_csv(returns_path +'/' + ticker + '.csv')
+        df_returns = pd.read_csv(returns_path +'/' + ticker + '.csv', index_col='date')
+        new_row = row[list(df_returns.columns)].to_frame().transpose()
+        df_returns = pd.concat([df_returns, new_row], axis = 0)
+        df_returns = df_returns.infer_objects()
+        df_returns = format_idx_date(df_returns)
+        df_returns.to_csv(returns_path +'/' + ticker + '.csv')
+        
+
+##### END OF FOR LOOP #####
 
 
 #### SET DATATYPES IN THE NEW DF
