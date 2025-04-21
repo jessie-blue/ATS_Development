@@ -102,7 +102,7 @@ print('Start date: ',df.index.min())
 #df = df[df.index <= "2024-02-01"]
 
 # REMOVE DATA SNOOPING 
-out_sample = False
+out_sample = True
 manual = False
 
 if out_sample is True:
@@ -113,7 +113,7 @@ if out_sample is True:
     
     else: 
         #Manually choosing the cutoff date
-        df = df[df.index <= '2016-01-01']
+        df = df[df.index >= '2022-03-01']
         #df = df[df.index >= '2010-01-01']
     
     del DF_NAME, df_dates 
@@ -226,7 +226,7 @@ df1 = df1.merge(df2, left_index = True, right_index = True)
 del pred, output, predictions
 
 cluster_stats = pd.read_csv(STATS_PATH + STATS_NAME).set_index("Unnamed: 0")
-ACC = (df1['labels'] == df1['predictions']).sum() / df1.shape[1]
+ACC = (df1['labels'] == df1['predictions']).sum() / df1.shape[0]
 print('Model Accuracy: ', ACC)
 print('Value Counts: ',df1.predictions.value_counts())
 
@@ -234,7 +234,7 @@ print('Value Counts: ',df1.predictions.value_counts())
 # =============================================================================
 # #### BACKTESTING ####
 # =============================================================================
-import numpy as np
+#import numpy as np
 
 df1 = df1.sort_index()
 
@@ -270,9 +270,11 @@ df_start_date = df1.index.min()
 print('End date: ', end_date)
 print('Start date: ', df_start_date)
 
-
+###### RETURNS CHOICE #######
 half_kelly_metric = True
-
+returns_path = 'strat_returns/Testing/no_kelly_criterion_returns'
+mixed_returns = False
+#############################
 start_capital = 1e4
 no_trade_k = [i for i in range(0,3) if i not in k_names][0]
 df = pd.DataFrame()
@@ -291,9 +293,13 @@ if half_kelly_metric is True:
 else: 
     half_kelly = 1 
     
-returns_path = 'strat_returns/Testing/mixed_returns/testing'
-mixed_returns = True
-
+    
+#### COMPARE PREDICTIONS WITH THE OTHER BACKTEST 
+#df_v1 = pd.read_csv('df_model_outsample_predictions.csv', index_col='Date')
+#df_v1 = format_idx_date(df_v1)
+#df_comp = df1.merge(df_v1, left_index=True, right_index=True, suffixes=['_df1', '_df_v1'], how = 'inner')
+#df_comp = df_comp[['labels_df1','labels_df_v1', 'predictions_df1', 'predictions_df_v1']]
+    
 for date, row in df1.iterrows():
     #break
     if half_kelly_metric is True:
@@ -342,7 +348,7 @@ for date, row in df1.iterrows():
         df_returns.to_csv(returns_path +'/' + ticker + '.csv')
         
 
-##### END OF FOR LOOP #####
+##### END OF BACKTESTING FOR LOOP #####
 
 
 #### SET DATATYPES IN THE NEW DF
@@ -472,7 +478,7 @@ fig.text(0.1, 0.03, stats_text, fontsize=12,
 
 model_info = f'LSTM Model Name: '
 model_info += f'{MODEL_NAME} \n'
-model_info += f'K-means Model Name:'
+model_info += f'K-means Model Name: '
 model_info += f'{KMEANS_NAME}'
 fig.text(
     0, 1, model_info, fontsize=11,
