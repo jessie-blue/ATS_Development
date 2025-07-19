@@ -47,7 +47,7 @@ for ticker in tickers:
     # =============================================================================
     # PULL DATA FROM DB
     # =============================================================================
-    df = downlaod_symbol_data(ticker) # period = "1day"
+    #df = downlaod_symbol_data(ticker) # period = "1day"
     
     # alternative to yfinance
     #df = download_data(ticker, days = 500) # period = "1day"
